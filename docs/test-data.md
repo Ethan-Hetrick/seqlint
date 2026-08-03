@@ -1,0 +1,17 @@
+# Test data generation
+
+```bash
+printf '\xEF\xBB\xBFfoobar' > test/UTF-BOM.txt
+
+cat > test/test.fasta <<'EOF'
+>foobar_1|foo|BAR1451.1 hypothetical protein, complete cds [organism=Escherichia coli]
+ATGCGATCGTAGCTAGCTAGCGTAGCTAGCATCGATCGATCGTAGCTAGCTAGCTAGCTA
+GCTAGCTAGCGATCGATCGTAGCTAGCNNNNNNNNNCTAGCTAGCTAGCTAGCTAGCATC
+GATCGATCGTAGCTAGCTAGCTAGCATCGATCGTAGCTAGCTAG
+>foobar_2|foo|BAR1452.1 another sequence, partial
+atgcatgcatgcatgcatgcatgcatgcgctagctagcyrwskmbdhvnATGCATGCATGC
+ATGCATGCATGCATGCATGCATGC
+>gi|61393989|gb|AY848686.1| Some virus complete genome
+ATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGC
+EOF
+```
