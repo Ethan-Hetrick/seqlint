@@ -12,7 +12,9 @@ fn main() -> io::Result<()> {
             assert!(fs::exists(&path).unwrap(), "\n\tERROR: Unable to access file {path}\n");
 
             // check: is not dir
+            // TODO: better error message for no read access
             let metadata = fs::metadata(&path)?;
+
             assert!(!metadata.is_dir(), "\nERROR: {path} is a directory\n");
 
             // check: is not empty
@@ -69,7 +71,6 @@ fn main() -> io::Result<()> {
 
             let mut counter: u32 = 0;
             let mut long: bool = false;
-
             for byte in contents.iter() {
                 // check: all bytes are ASCII
                 if !gzip { assert!(byte.is_ascii(), "\nERROR: {path} contains non-ASCII bytes.\n"); }
