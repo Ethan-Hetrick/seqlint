@@ -27,4 +27,12 @@ GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGA
 +SEQ_ID_2 length=36
 IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII6IBI
 EOF
+
+printf '>foobar\n' > test/long.fasta && printf 'A%.0s' {1..1000} >> test/long.fasta
+
+printf '\x3E\x00\x00\x00' > test/null.fasta
+
+printf '\x3E\x0D\x0D\x0D' > test/cr.fasta
+
+
 ```
