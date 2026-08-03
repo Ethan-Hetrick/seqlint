@@ -67,22 +67,36 @@ fn main() -> io::Result<()> {
                 0x7F, // DEL
             ];
 
+            let mut counter: u32 = 0;
+            let mut long: bool = false;
+
             for byte in contents.iter() {
                 // check: all bytes are ASCII
                 if !gzip { assert!(byte.is_ascii(), "\nERROR: {path} contains non-ASCII bytes.\n"); }
 
-                // check: void of offending ASCII bytes
+                // check: offending ASCII bytes
                 if !gzip { assert!(!offenders.contains(byte)); }
+
+                // count lines
+                if *byte == 0x0A {
+                    counter = 0;
+                } else {
+                    counter += 1;
+                    if counter > 80 && !long {
+                        println!("\nWARNING: {path} contains lines > 80 characters long\n");
+                        long = true;
+                    }
+                }
+
             }
 
-            // FASTA header check
+            // check: FASTA header
             if contents.starts_with(&[0x3E]) {
                 println!("\n{path} contains FASTA header");
-            // FASTQ header check
+            // check: FASTQ header
             } else if contents.starts_with(&[0x40]) {
                 println!("\n{path} contains FASTQ header");
             }
-
 
     }
 
