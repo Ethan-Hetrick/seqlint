@@ -19,6 +19,7 @@ fn main() -> io::Result<()> {
             // check: is not empty
             let size = metadata.len() as usize;
             assert!(*&size > 0, "\nERROR: {path} is empty\n");
+            assert!(*&size > 3, "\nERROR: {path} < 3 bytes, unable to process\n");
             println!("\n{path} is {size} bytes\n");
 
             // Load file
