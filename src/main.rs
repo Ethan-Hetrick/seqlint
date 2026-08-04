@@ -14,11 +14,12 @@ fn main() -> io::Result<()> {
             // check: is not dir
             // TODO: better error message for no read access
             let metadata = fs::metadata(&path)?;
-
             assert!(!metadata.is_dir(), "\nERROR: {path} is a directory\n");
 
             // check: is not empty
-            assert!(metadata.len() > 0, "\nERROR: {path} is empty\n");
+            let size = metadata.len() as usize;
+            assert!(*&size > 0, "\nERROR: {path} is empty\n");
+            println!("\n{path} is {size} bytes\n");
 
             // Load file
             let contents: Vec<u8> = fs::read(&path)?;
@@ -71,6 +72,7 @@ fn main() -> io::Result<()> {
 
             let mut counter: u32 = 0;
             let mut long: bool = false;
+
             for byte in contents.iter() {
                 // check: all bytes are ASCII
                 if !gzip { assert!(byte.is_ascii(), "\nERROR: {path} contains non-ASCII bytes.\n"); }
@@ -98,6 +100,10 @@ fn main() -> io::Result<()> {
             } else if contents.starts_with(&[0x40]) {
                 println!("\n{path} contains FASTQ header");
             }
+
+            // Check last newline
+            assert_eq!(contents[*&size - 1], 0x0A, "\n\nWARNING: {path} does not end in a valid newline character\n");
+
 
     }
 

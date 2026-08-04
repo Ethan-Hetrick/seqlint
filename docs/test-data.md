@@ -34,5 +34,5 @@ printf '\x3E\x00\x00\x00' > test/null.fasta
 
 printf '\x3E\x0D\x0D\x0D' > test/cr.fasta
 
-
+head -c -1 test/test.fasta > test/no-last-newline.fasta
 ```
