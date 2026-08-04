@@ -1,8 +1,26 @@
 use std::{env,io};
 use std::fs;
 
+use seqlint::{bytewise_checks,check_final_newline};
+
 // FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
 // FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
+
+#[derive(Debug)]
+struct Header {
+    utf_bom: bool,
+    gzip_magic: bool,
+}
+
+impl Header {
+    fn utf_bom(contents: &Vec<u8>) -> bool {
+        contents.starts_with(&[0xEF, 0xBB, 0xBF])
+    }
+
+    fn gzip_magic(contents: &Vec<u8>) -> bool {
+        contents.starts_with(&[0x1F, 0x8B])
+    }
+}
 
 fn main() -> io::Result<()> {
 
@@ -29,100 +47,26 @@ fn main() -> io::Result<()> {
             // Load file
             let contents: Vec<u8> = fs::read(&path)?;
 
-            // check: does not have UTF BOM
-            assert_ne!(&contents[0..3], [0xEF, 0xBB, 0xBF], "\n\nERROR: {path} contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
+            // check: headers
+            let header = Header {
+                utf_bom: Header::utf_bom(&contents),
+                gzip_magic: Header::gzip_magic(&contents),
+            };
 
-            // check: has gzip magic bytes
-            let mut gzip: bool = false;
-            if &contents[0..2] == [0x1F, 0x8B] {
-                println!("\n{path} is gzip-compressed\n");
-                gzip = true;
-            }
+            // Error if BOM exists
+            assert!(!header.utf_bom, "\n\nERROR: {path} contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
 
-            // Offending ASCII bytes
-            // The below are mostly control characters with exceptions like NUL and CR
-            let offenders: Vec<u8> = vec![
-                0x00, // NUL
-                0x01, // SOH
-                0x02, // STX
-                0x03, // ETX
-                0x04, // EOT
-                0x05, // ENQ
-                0x06, // ACK
-                0x07, // BEL
-                0x08, // BS
-                0x0B, // VT
-                0x0C, // FF
-                0x0D, // CR
-                0x0E, // SO
-                0x0F, // SI
-                0x10, // DLE
-                0x11, // DC1
-                0x12, // DC2
-                0x13, // DC3
-                0x14, // DC4
-                0x15, // NAK
-                0x16, // SYN
-                0x17, // ETB
-                0x18, // CAN
-                0x19, // EM
-                0x1A, // SUB
-                0x1B, // ESC
-                0x1C, // FS
-                0x1D, // GS
-                0x1E, // RS
-                0x1F, // US
-                0x7F, // DEL
-            ];
+            // Print if file is gzipped
+            if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
 
-            let whitespaces: Vec<u8> = vec![
-                0x09, // HT (TAB),
-                0x20, // space,
-            ];
+            // Byte-wise checks:
+            let bytewise_results = bytewise_checks(&contents);
 
-            let mut counter: u32 = 0;
-            let mut i: usize = 0;
-            let mut long: bool = false;
-            let mut trailing: bool = false;
-            let mut emptyline: bool = true;
-            let mut emptyline_check: bool = false;
-            for byte in contents.iter() {
-                // incrase index
-                i += 1;
-
-                // check: all bytes are ASCII
-                if !gzip { assert!(byte.is_ascii(), "\nERROR: {path} contains non-ASCII bytes.\n"); }
-
-                // check: offending ASCII bytes
-                if !gzip { assert!(!offenders.contains(byte)); }
-
-                // count newlines
-                if *byte == 0x0A {
-                    if emptyline && !emptyline_check {
-                        println!("WARNING: {path} contains empty lines");
-                        emptyline_check = true;
-                    } else {
-                        emptyline = true;
-                    }
-                    counter = 0;
-                    // check: trailing whitespace
-                    if i>2 && whitespaces.contains(&contents[&i - 2]) && !trailing {
-                        trailing = true;
-                    }
-                } else {
-                    counter += 1;
-                    if counter > 80 && !long {
-                        println!("\nWARNING: {path} contains lines > 80 characters long\n");
-                        long = true;
-                    }
-
-                    if !whitespaces.contains(byte) {
-                        emptyline = false;
-                    }
-                }
-            }
-
-            if trailing { println!("\nWARNING: {path} contains trailing whitespace\n") }
+            if !bytewise_results.is_ascii && !header.gzip_magic { println!("{path} contains non-ASCII bytes"); }
+            if bytewise_results.contains_offensive_bytes && !header.gzip_magic { println!("{path} contains unsupported ASCII bytes"); }
+            if bytewise_results.trailing_whitespace && !header.gzip_magic { println!("{path} contains trailing whitespace"); }
+            if bytewise_results.long_lines && !header.gzip_magic { println!("{path} contains lines longer than 80 characters"); }
+            if bytewise_results.empty_lines && !header.gzip_magic { println!("{path} contains empty lines"); }
 
             // check: FASTA header
             if contents.starts_with(&[0x3E]) {
@@ -132,8 +76,9 @@ fn main() -> io::Result<()> {
                 println!("\n{path} contains FASTQ header");
             }
 
-            // Check last newline
-            assert_eq!(contents[*&size - 1], 0x0A, "\n\nWARNING: {path} does not end in a valid newline character\n");
+            let has_final_newline = check_final_newline(&contents, size);
+
+            if !has_final_newline {println!("\nWARNING: {path} does not contain a final newline character")}
 
     }
 
