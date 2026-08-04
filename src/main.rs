@@ -19,7 +19,11 @@ fn main() -> io::Result<()> {
             // check: is not empty
             let size = metadata.len() as usize;
             assert!(*&size > 0, "\nERROR: {path} is empty\n");
-            assert!(*&size > 3, "\nERROR: {path} < 3 bytes, unable to process\n");
+
+            // check: has more than 3 bytes
+            assert!(*&size >= 3, "\nERROR: {path} < 3 bytes, unable to process\n");
+
+            // print bytes
             println!("\n{path} is {size} bytes\n");
 
             // Load file
@@ -71,28 +75,54 @@ fn main() -> io::Result<()> {
                 0x7F, // DEL
             ];
 
-            let mut counter: u32 = 0;
-            let mut long: bool = false;
+            let whitespaces: Vec<u8> = vec![
+                0x09, // HT (TAB),
+                0x20, // space,
+            ];
 
+            let mut counter: u32 = 0;
+            let mut i: usize = 0;
+            let mut long: bool = false;
+            let mut trailing: bool = false;
+            let mut emptyline: bool = true;
+            let mut emptyline_check: bool = false;
             for byte in contents.iter() {
+                // incrase index
+                i += 1;
+
                 // check: all bytes are ASCII
                 if !gzip { assert!(byte.is_ascii(), "\nERROR: {path} contains non-ASCII bytes.\n"); }
 
                 // check: offending ASCII bytes
                 if !gzip { assert!(!offenders.contains(byte)); }
 
-                // count lines
+                // count newlines
                 if *byte == 0x0A {
+                    if emptyline && !emptyline_check {
+                        println!("WARNING: {path} contains empty lines");
+                        emptyline_check = true;
+                    } else {
+                        emptyline = true;
+                    }
                     counter = 0;
+                    // check: trailing whitespace
+                    if i>2 && whitespaces.contains(&contents[&i - 2]) && !trailing {
+                        trailing = true;
+                    }
                 } else {
                     counter += 1;
                     if counter > 80 && !long {
                         println!("\nWARNING: {path} contains lines > 80 characters long\n");
                         long = true;
                     }
-                }
 
+                    if !whitespaces.contains(byte) {
+                        emptyline = false;
+                    }
+                }
             }
+
+            if trailing { println!("\nWARNING: {path} contains trailing whitespace\n") }
 
             // check: FASTA header
             if contents.starts_with(&[0x3E]) {
@@ -104,7 +134,6 @@ fn main() -> io::Result<()> {
 
             // Check last newline
             assert_eq!(contents[*&size - 1], 0x0A, "\n\nWARNING: {path} does not end in a valid newline character\n");
-
 
     }
 
