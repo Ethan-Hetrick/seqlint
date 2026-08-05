@@ -43,4 +43,6 @@ sed 's/$/\n   /' test/test.fasta > test/empty-lines.fasta
 bgzip -c test/test.fastq > test/bgzf-test.fastq.gz
 
 head -3 test.test.fastq > test/3-line.fastq
+
+sed 's/@//g' test/test.fastq > test/missing-@.fastq
 ```
