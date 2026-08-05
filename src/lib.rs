@@ -1,4 +1,7 @@
 use std::fs;
+use std::io::Read;
+use std::io;
+use flate2::read::GzDecoder;
 
 #[derive(Debug)]
 pub struct ByteWiseCheck {
@@ -194,4 +197,12 @@ pub fn integrity_checks(path: &String) -> usize {
     assert!(*&size >= 3, "\nERROR: {path} < 3 bytes, unable to process\n");
 
     size
+}
+
+pub fn decode_reader(bytes: &Vec<u8>) -> io::Result<Vec<u8>> {
+   let mut gz: GzDecoder<&[u8]> = GzDecoder::new(&bytes[..]);
+   let mut decompressed_contents = Vec::new();
+   let _ = gz.read_to_end(&mut decompressed_contents);
+
+   Ok(decompressed_contents)
 }

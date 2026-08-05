@@ -3,7 +3,7 @@ const FILE_TYPES: [&str; 2] = ["fasta", "fastq"];
 use std::{env,io};
 use std::fs;
 
-use seqlint::{bytewise_checks, check_headers, integrity_checks, check_footer};
+use seqlint::{bytewise_checks, check_headers, integrity_checks, check_footer, decode_reader};
 
 mod fasta;
 mod fastq;
@@ -31,25 +31,33 @@ fn main() -> io::Result<()> {
             // Check headers
             let is_gzip: bool = check_headers(&contents, &path);
 
+            let bytewise_checks_input: Vec<u8> = if is_gzip {
+                decode_reader(&contents).unwrap()
+
+            } else {
+                contents.clone()
+            };
+
             // Footer
             let footer = check_footer(&contents, &size);
             if footer.bgzf_eof {println!("{path} contains valid BGZF EOF bytes"); }
             if footer.newline {println!("{path} contains final newline\n"); }
 
             // Byte-wise checks:
-            let bytewise_results = bytewise_checks(&contents);
-            if !bytewise_results.is_ascii && !is_gzip { println!("{path} contains non-ASCII bytes"); }
-            if bytewise_results.contains_offensive_bytes && !is_gzip { println!("{path} contains unsupported ASCII bytes"); }
-            if bytewise_results.trailing_whitespace && !is_gzip { println!("{path} contains trailing whitespace"); }
-            if bytewise_results.long_lines && !is_gzip { println!("{path} contains lines longer than 80 characters"); }
-            if bytewise_results.empty_lines && !is_gzip { println!("{path} contains empty lines"); }
+
+            let bytewise_results = bytewise_checks(&bytewise_checks_input);
+            if !bytewise_results.is_ascii { println!("{path} contains non-ASCII bytes"); }
+            if bytewise_results.contains_offensive_bytes { println!("{path} contains unsupported ASCII bytes"); }
+            if bytewise_results.trailing_whitespace { println!("{path} contains trailing whitespace"); }
+            if bytewise_results.long_lines { println!("{path} contains lines longer than 80 characters"); }
+            if bytewise_results.empty_lines { println!("{path} contains empty lines"); }
 
             if *&pipeline.as_str() == "fasta" {
-                if fasta::Fasta::valid_start(&contents) {
+                if fasta::Fasta::new(&contents).valid_start {
                     println!("\nFastA starts with '>'")
                 }
             } else if *&pipeline.as_str() == "fastq" {
-                if fastq::Fastq::valid_start(&contents) {
+                if fastq::Fastq::new(&contents).valid_start {
                     println!("\nFastQ starts with '@'")
                 }
             }
