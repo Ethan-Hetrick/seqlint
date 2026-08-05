@@ -1,3 +1,5 @@
+const FILE_TYPES: [&str; 2] = ["fasta", "fastq"];
+
 use std::{env,io};
 use std::fs;
 
@@ -11,7 +13,12 @@ mod fastq;
 
 fn main() -> io::Result<()> {
 
-    for path in env::args().skip(1) {
+    let args: Vec<String> = env::args().collect();
+
+    let pipeline = args.get(1).expect("Must provide at least one arg");
+    assert!(FILE_TYPES.contains(&pipeline.as_str()), "\nFirst arg must be 'fasta' or 'fastq'\n");
+
+    for path in args.iter().skip(2) {
             // Run basic file integrity checks
             let size: usize = integrity_checks(&path);
 
@@ -26,28 +33,29 @@ fn main() -> io::Result<()> {
 
             // Footer
             let footer = check_footer(&contents, &size);
-
             if footer.bgzf_eof {println!("{path} contains valid BGZF EOF bytes"); }
             if footer.newline {println!("{path} contains final newline\n"); }
 
             // Byte-wise checks:
             let bytewise_results = bytewise_checks(&contents);
-
             if !bytewise_results.is_ascii && !is_gzip { println!("{path} contains non-ASCII bytes"); }
             if bytewise_results.contains_offensive_bytes && !is_gzip { println!("{path} contains unsupported ASCII bytes"); }
             if bytewise_results.trailing_whitespace && !is_gzip { println!("{path} contains trailing whitespace"); }
             if bytewise_results.long_lines && !is_gzip { println!("{path} contains lines longer than 80 characters"); }
             if bytewise_results.empty_lines && !is_gzip { println!("{path} contains empty lines"); }
 
-            if fasta::Fasta::valid_start(&contents) {
-                println!("FastA start")
+            if *&pipeline.as_str() == "fasta" {
+                if fasta::Fasta::valid_start(&contents) {
+                    println!("\nFastA starts with '>'")
+                }
+            } else if *&pipeline.as_str() == "fastq" {
+                if fastq::Fastq::valid_start(&contents) {
+                    println!("\nFastQ starts with '@'")
+                }
             }
 
-            if fastq::Fastq::valid_start(&contents) {
-                println!("FastQ start")
-            }
     }
 
-    Ok(())
+Ok(())
 
 }
