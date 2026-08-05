@@ -27,11 +27,7 @@ impl Header {
 
     fn is_deflate(contents: &Vec<u8>) -> bool {
         // 3rd byte set to 8 for DEFLATE
-        if contents[2] == 8 {
-            true
-        } else {
-            false
-        }
+        contents[2] == 8
     }
 }
 
