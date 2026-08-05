@@ -22,6 +22,10 @@ fn main() -> io::Result<()> {
             // Run basic file integrity checks
             let size: usize = integrity_checks(&path);
 
+            let abs_path = fs::canonicalize(&path)?.to_string_lossy().into_owned();
+
+            println!("\nAbsolute path:{}", &abs_path);
+
             // print bytes
             println!("\n{path} is {size} bytes\n");
 
