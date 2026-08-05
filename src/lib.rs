@@ -13,6 +13,7 @@ pub struct ByteWiseCheck {
 struct Header {
     utf_bom: bool,
     gzip_magic: bool,
+    deflate: bool,
 }
 
 impl Header {
@@ -22,6 +23,15 @@ impl Header {
 
     fn gzip_magic(contents: &Vec<u8>) -> bool {
         contents.starts_with(&[0x1F, 0x8B])
+    }
+
+    fn is_deflate(contents: &Vec<u8>) -> bool {
+        // 3rd byte set to 8 for DEFLATE
+        if contents[2] == 8 {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -132,6 +142,7 @@ pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
     let header = Header {
         utf_bom: Header::utf_bom(&contents),
         gzip_magic: Header::gzip_magic(&contents),
+        deflate: Header::is_deflate(&contents),
     };
 
     // Error if BOM exists
@@ -139,6 +150,8 @@ pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
 
     // Print if file is gzipped
     if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
+
+    if header.deflate { println!{"\n{path} was compressed with DEFLATE\n"} }
 
     header.gzip_magic
 }
