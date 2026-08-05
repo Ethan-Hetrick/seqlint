@@ -57,8 +57,14 @@ fn main() -> io::Result<()> {
                     println!("\nFastA starts with '>'")
                 }
             } else if *&pipeline.as_str() == "fastq" {
-                if fastq::Fastq::new(&contents).valid_start {
+                let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count);
+
+                if fastq.valid_start {
                     println!("\nFastQ starts with '@'")
+                }
+
+                if fastq.four_line_entries {
+                    println!("\nFastQ has four-line entries")
                 }
             }
 

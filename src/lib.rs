@@ -10,6 +10,7 @@ pub struct ByteWiseCheck {
     pub trailing_whitespace: bool,
     pub long_lines: bool,
     pub empty_lines: bool,
+    pub line_count: usize,
 }
 
 #[derive(Debug)]
@@ -105,6 +106,7 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
     let mut emptyline_check: bool = false;
     let mut is_ascii: bool = true;
     let mut contains_offensive_bytes: bool = false;
+    let mut line_count: usize = 0usize;
     for byte in contents.iter() {
         // increase index
         i += 1;
@@ -120,6 +122,8 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
 
         // count newlines
         if *byte == 0x0A {
+            line_count += 1;
+
             if emptyline && !emptyline_check {
                 emptyline_check = true;
             } else {
@@ -149,6 +153,7 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
         trailing_whitespace: trailing,
         long_lines: long,
         empty_lines: emptyline_check,
+        line_count: line_count,
     }
 }
 

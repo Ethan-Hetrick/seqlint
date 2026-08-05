@@ -41,4 +41,6 @@ sed 's/$/\x20/' test/test.fastq > test/trailing.fastq
 sed 's/$/\n   /' test/test.fasta > test/empty-lines.fasta
 
 bgzip -c test/test.fastq > test/bgzf-test.fastq.gz
+
+head -3 test.test.fastq > test/3-line.fastq
 ```
