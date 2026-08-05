@@ -1,3 +1,5 @@
+use std::fs;
+
 #[derive(Debug)]
 pub struct ByteWiseCheck {
     pub is_ascii: bool,
@@ -5,6 +7,22 @@ pub struct ByteWiseCheck {
     pub trailing_whitespace: bool,
     pub long_lines: bool,
     pub empty_lines: bool,
+}
+
+#[derive(Debug)]
+struct Header {
+    utf_bom: bool,
+    gzip_magic: bool,
+}
+
+impl Header {
+    fn utf_bom(contents: &Vec<u8>) -> bool {
+        contents.starts_with(&[0xEF, 0xBB, 0xBF])
+    }
+
+    fn gzip_magic(contents: &Vec<u8>) -> bool {
+        contents.starts_with(&[0x1F, 0x8B])
+    }
 }
 
 pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
@@ -107,4 +125,39 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
 
 pub fn check_final_newline (contents: &[u8], size: usize) -> bool {
     contents[*&size - 1] == 0x0A
+}
+
+pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
+    // check: headers
+    let header = Header {
+        utf_bom: Header::utf_bom(&contents),
+        gzip_magic: Header::gzip_magic(&contents),
+    };
+
+    // Error if BOM exists
+    assert!(!header.utf_bom, "\n\nERROR: {path} contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
+
+    // Print if file is gzipped
+    if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
+
+    header.gzip_magic
+}
+
+pub fn integrity_checks(path: &String) -> usize {
+    // check: does exist
+    assert!(fs::exists(&path).unwrap(), "\n\tERROR: Unable to access file {path}\n");
+    let metadata = fs::metadata(&path).expect("REASON");
+
+    // check: is not dir
+    // TODO: better error message for no read access
+    assert!(!metadata.is_dir(), "\nERROR: {path} is a directory\n");
+
+    // check: is not empty
+    let size = metadata.len() as usize;
+    assert!(*&size > 0, "\nERROR: {path} is empty\n");
+
+    // check: has more than 3 bytes
+    assert!(*&size >= 3, "\nERROR: {path} < 3 bytes, unable to process\n");
+
+    size
 }
