@@ -3,6 +3,9 @@ use std::fs;
 
 use seqlint::{bytewise_checks, check_headers, integrity_checks, check_footer};
 
+mod fasta;
+mod fastq;
+
 // FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
 // FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
 
@@ -36,12 +39,12 @@ fn main() -> io::Result<()> {
             if bytewise_results.long_lines && !is_gzip { println!("{path} contains lines longer than 80 characters"); }
             if bytewise_results.empty_lines && !is_gzip { println!("{path} contains empty lines"); }
 
-            // check: FASTA header
-            if contents.starts_with(&[0x3E]) {
-                println!("\n{path} contains FASTA header");
-            // check: FASTQ header
-            } else if contents.starts_with(&[0x40]) {
-                println!("\n{path} contains FASTQ header");
+            if fasta::Fasta::valid_start(&contents) {
+                println!("FastA start")
+            }
+
+            if fastq::Fastq::valid_start(&contents) {
+                println!("FastQ start")
             }
     }
 
