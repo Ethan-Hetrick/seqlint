@@ -5,16 +5,6 @@ pub struct Fastq {
 }
 
 impl Fastq {
-    pub fn line_count (contents: &[u8]) -> usize {
-        let mut counter: usize = 0;
-        for byte in contents.iter() {
-            if *byte == 0x0A {
-                counter += 1;
-            }
-        }
-        counter
-    }
-
     pub fn new(contents: &[u8], size: &usize) -> Self {
         Fastq {
             valid_start: contents.starts_with(&[0x40]),
