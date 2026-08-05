@@ -6,7 +6,7 @@ pub struct Fasta {
 }
 
 impl Fasta {
-    pub fn new(contents: &[u8], path: &String) -> Self {
+    pub fn new(contents: &Vec<u8>, path: &String) -> Self {
         Fasta {
             valid_extension: VALID_FASTA_EXTENSIONS
             .iter().any(|&ext| path.ends_with(ext) || path.ends_with(&format!("{}.gz", ext))),

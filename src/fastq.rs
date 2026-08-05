@@ -8,7 +8,7 @@ pub struct Fastq {
 }
 
 impl Fastq {
-    pub fn new(contents: &[u8], line_count: &usize, path: &String) -> Self {
+    pub fn new(contents: &Vec<u8>, line_count: &usize, path: &String) -> Self {
         Fastq {
             valid_extension: VALID_FASTQ_EXTENSIONS
             .iter().any(|&ext| path.ends_with(ext) || path.ends_with(&format!("{}.gz", ext))),
