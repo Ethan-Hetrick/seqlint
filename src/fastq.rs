@@ -3,7 +3,9 @@ pub struct Fastq {
 }
 
 impl Fastq {
-    pub fn valid_start (contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[0x40])
+    pub fn new(contents: &[u8]) -> Self {
+        Fastq {
+            valid_start: contents.starts_with(&[0x40])
+        }
     }
 }
