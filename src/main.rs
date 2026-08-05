@@ -1,26 +1,10 @@
 use std::{env,io};
 use std::fs;
 
-use seqlint::{bytewise_checks,check_final_newline, check_headers, integrity_checks};
+use seqlint::{bytewise_checks, check_headers, integrity_checks, check_footer};
 
 // FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
 // FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
-
-#[derive(Debug)]
-pub struct Header {
-    pub utf_bom: bool,
-    pub gzip_magic: bool,
-}
-
-impl Header {
-    pub fn utf_bom(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[0xEF, 0xBB, 0xBF])
-    }
-
-    pub fn gzip_magic(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[0x1F, 0x8B])
-    }
-}
 
 fn main() -> io::Result<()> {
 
@@ -36,6 +20,12 @@ fn main() -> io::Result<()> {
 
             // Check headers
             let is_gzip: bool = check_headers(&contents, &path);
+
+            // Footer
+            let footer = check_footer(&contents, &size);
+
+            if footer.bgzf_eof {println!("{path} contains valid BGZF EOF bytes"); }
+            if footer.newline {println!("{path} contains final newline\n"); }
 
             // Byte-wise checks:
             let bytewise_results = bytewise_checks(&contents);
@@ -53,11 +43,6 @@ fn main() -> io::Result<()> {
             } else if contents.starts_with(&[0x40]) {
                 println!("\n{path} contains FASTQ header");
             }
-
-            let has_final_newline = check_final_newline(&contents, size);
-
-            if !has_final_newline {println!("\nWARNING: {path} does not contain a final newline character")}
-
     }
 
     Ok(())
