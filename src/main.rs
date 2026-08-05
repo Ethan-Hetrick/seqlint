@@ -53,11 +53,19 @@ fn main() -> io::Result<()> {
             if bytewise_results.empty_lines { println!("{path} contains empty lines"); }
 
             if *&pipeline.as_str() == "fasta" {
-                if fasta::Fasta::new(&contents).valid_start {
+                let fasta = fasta::Fasta::new(&contents, &path);
+                if fasta.valid_start {
                     println!("\nFastA starts with '>'")
                 }
+                if fasta.valid_extension {
+                    println!("\nFastA has valid extension")
+                }
             } else if *&pipeline.as_str() == "fastq" {
-                let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count);
+                let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
+
+                if fastq.valid_extension {
+                    println!("\nFastQ has valid extension")
+                }
 
                 if fastq.valid_start {
                     println!("\nFastQ starts with '@'")

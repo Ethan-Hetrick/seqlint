@@ -1,10 +1,15 @@
+const VALID_FASTA_EXTENSIONS: [&str; 8] = [".fasta", ".fa", ".faa", ".fna", ".ffn", ".fas", ".frn", ".mpfa"];
+
 pub struct Fasta {
+    pub valid_extension: bool,
     pub valid_start: bool
 }
 
 impl Fasta {
-    pub fn new(contents: &[u8]) -> Self {
+    pub fn new(contents: &[u8], path: &String) -> Self {
         Fasta {
+            valid_extension: VALID_FASTA_EXTENSIONS
+            .iter().any(|&ext| path.ends_with(ext) || path.ends_with(&format!("{}.gz", ext))),
             valid_start: contents.starts_with(&[0x3E])
         }
     }
