@@ -26,8 +26,28 @@ impl Header {
     }
 
     fn is_deflate(contents: &Vec<u8>) -> bool {
-        // 3rd byte set to 8 for DEFLATE
+        // 3rd byte set to 8 for DEFLATE]
         contents[2] == 8
+    }
+}
+
+pub struct Footer {
+    pub newline: bool,
+    pub bgzf_eof: bool,
+}
+
+impl Footer {
+    pub fn bgzf_eof(contents: &Vec<u8>, size: &usize) -> bool {
+
+        let eof = vec![0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+                       0x06, 0x00, 0x42, 0x43, 0x02, 0x00, 0x1b, 0x00, 0x03, 0x00,
+                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ];
+
+        *size >= eof.len() && contents[*size - eof.len()..] == eof
+    }
+
+    pub fn check_final_newline (contents: &[u8], size: &usize) -> bool {
+        contents[*&size - 1] == 0x0A
     }
 }
 
@@ -129,10 +149,6 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
     }
 }
 
-pub fn check_final_newline (contents: &[u8], size: usize) -> bool {
-    contents[*&size - 1] == 0x0A
-}
-
 pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
     // check: headers
     let header = Header {
@@ -150,6 +166,15 @@ pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
     if header.deflate { println!{"\n{path} was compressed with DEFLATE\n"} }
 
     header.gzip_magic
+}
+
+pub fn check_footer (contents: &Vec<u8>, size: &usize) -> Footer {
+    let footer = Footer {
+        newline: Footer::check_final_newline(&contents, &size),
+        bgzf_eof: Footer::bgzf_eof(&contents, &size),
+    };
+
+    footer
 }
 
 pub fn integrity_checks(path: &String) -> usize {
