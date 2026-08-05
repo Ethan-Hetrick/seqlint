@@ -1,5 +1,13 @@
 # Test data generation
 
+## Versions
+
+GNU coreutils 8.30
+bgzip (htslib) 1.23.1
+samtools 1.23.1, Using htslib 1.23.1
+
+
+## Commands
 ```bash
 printf '\xEF\xBB\xBFfoobar' > test/UTF-BOM.txt
 
@@ -45,4 +53,10 @@ bgzip -c test/test.fastq > test/bgzf-test.fastq.gz
 head -3 test.test.fastq > test/3-line.fastq
 
 sed 's/@//g' test/test.fastq > test/missing-@.fastq
+
+samtools import -0 test/fixtures/test.fastq -O 'SAM' > test/fixtures/test.fastq.sam
+
+samtools import -0 test/fixtures/test.fastq -O 'BAM' > test/fixtures/test.fastq.bam
+
+samtools import -0 test/fixtures/test.fastq -O 'CRAM' > test/fixtures/test.fastq.cram
 ```
