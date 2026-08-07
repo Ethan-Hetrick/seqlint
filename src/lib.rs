@@ -4,16 +4,6 @@ use std::io;
 use flate2::read::GzDecoder;
 
 #[derive(Debug)]
-pub struct ByteWiseCheck {
-    pub is_ascii: bool,
-    pub contains_offensive_bytes: bool,
-    pub trailing_whitespace: bool,
-    pub long_lines: bool,
-    pub empty_lines: bool,
-    pub line_count: usize,
-}
-
-#[derive(Debug)]
 pub struct Header {
     utf_bom: bool,
     gzip_magic: bool,
@@ -40,26 +30,27 @@ impl Header {
     }
 
     pub fn new (contents: &Vec<u8>, path: &String) -> bool {
-    // check: headers
-    let header = Header {
-        utf_bom: Header::utf_bom(&contents),
-        gzip_magic: Header::gzip_magic(&contents),
-        deflate: Header::is_deflate(&contents),
-        cram_magic: Header::cram_magic(&contents),
-    };
+        // check: headers
+        println!("\nHeader checks:");
+        let header = Header {
+            utf_bom: Header::utf_bom(&contents),
+            gzip_magic: Header::gzip_magic(&contents),
+            deflate: Header::is_deflate(&contents),
+            cram_magic: Header::cram_magic(&contents),
+        };
 
-    // Error if BOM exists
-    assert!(!header.utf_bom, "\n\nERROR: {path} contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
+        // Error if BOM exists
+        assert!(!header.utf_bom, "\n\nERROR: file contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
 
-    // Print if file is gzipped
-    if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
+        // Print if file is gzipped
+        if header.gzip_magic { println!("- gzip-compressed"); }
 
-    if header.deflate { println!{"\n{path} was compressed with DEFLATE\n"} }
+        if header.deflate { println!{"- compressed with DEFLATE"} }
 
-    if header.cram_magic { println!{"\n{path} is a CRAM file\n"} }
+        if header.cram_magic { println!{"- is a CRAM file"} }
 
-    header.gzip_magic
-}
+        header.gzip_magic
+    }
 }
 
 pub struct Footer {
@@ -89,6 +80,17 @@ impl Footer {
 
         footer
     }
+}
+
+#[derive(Debug)]
+pub struct ByteWiseCheck {
+    pub is_ascii: bool,
+    pub contains_offensive_bytes: bool,
+    pub trailing_whitespace: bool,
+    pub long_lines: bool,
+    pub empty_lines: bool,
+    pub line_count: usize,
+    pub empty_record: bool,
 }
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
@@ -149,6 +151,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut in_seq_id: bool = false;
     let mut malformed_seq_id: bool = false;
     let mut malformed_sequence: bool = false;
+    let mut empty_record: bool = false;
 
     for byte in contents.iter() {
         // increase index
@@ -192,6 +195,13 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 if in_header {
                     header_len += 1;
 
+                    // Check for empty FastA records
+                    if header_len == 1 {
+                        if !empty_record && i > 2 && contents[i - 2] == 0x3E  {
+                            empty_record = true;
+                        }
+                    }
+
                     if *byte == 0x20 {
                         in_seq_id = false;
                     }
@@ -209,9 +219,9 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         // Valid chars
                     } else if !malformed_seq_id && in_seq_id {
                         malformed_seq_id = true;
-                        println!{"\nWARNING: FastA seqID contains invalid characters. \
+                        println!{"- seqID contains invalid characters.\n\t\
                         Only letters, digits, hyphens (-), underscores (_), periods (.),\
-                         colons (:), asterisks (*), and number signs (#) are allowed\n"}
+                         colons (:), asterisks (*), and number signs (#) are allowed"}
                     }
                 } else if *byte == 0x3E {
                     in_header = true;
@@ -219,8 +229,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 } else {
                     if !(byte.is_ascii_alphabetic() || matches!(byte, b'-' | b'.')) {
                         if !malformed_sequence {
-                            println!{"\nWARNING: FastA sequence contains invalid characters. \
-                            Only IUPAC nucleotide symbols are allowed\n"};
+                            println!{"- sequence contains invalid characters. \
+                            Only IUPAC nucleotide symbols are allowed"};
                         }
 
                         malformed_sequence = true;
@@ -236,8 +246,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     }
 
     if max_header_len > 25 {
-        println!{"FastA header length exceeds 25 characters. \
-        Longest header is {max_header_len} characters long\n"}
+        println!{"- header length exceeds 25 characters.\n\t\
+        Longest header is {max_header_len} characters long"}
     }
 
     ByteWiseCheck {
@@ -247,6 +257,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         long_lines: long,
         empty_lines: emptyline_check,
         line_count: line_count,
+        empty_record: empty_record,
     }
 }
 

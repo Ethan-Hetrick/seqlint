@@ -17,8 +17,8 @@ fn main() -> io::Result<()> {
 
     let args: Vec<String> = env::args().collect();
 
-    let pipeline = args.get(1).expect("Must provide at least one arg");
-    assert!(FILE_TYPES.contains(&pipeline.as_str()), "\nFirst arg must be 'fasta' or 'fastq'\n");
+    let pipeline = args.get(1).expect("ERROR: Must provide at least one arg");
+    assert!(FILE_TYPES.contains(&pipeline.as_str()), "\nERROR: First arg must be 'fasta' or 'fastq'");
 
     for path in args.iter().skip(2) {
             // Run basic file integrity checks
@@ -26,10 +26,8 @@ fn main() -> io::Result<()> {
 
             let abs_path = fs::canonicalize(&path)?.to_string_lossy().into_owned();
 
-            println!("\nAbsolute path:{}", &abs_path);
-
             // print bytes
-            println!("\n{path} is {size} bytes\n");
+            println!("\n{abs_path} is {size} bytes");
 
             // Load file
             let contents: Vec<u8> = fs::read(&path)?;
@@ -45,40 +43,47 @@ fn main() -> io::Result<()> {
             };
 
             // Footer
+            println!("\nFooter checks:");
             let footer = Footer::new(&contents, &size);
-            if footer.bgzf_eof {println!("{path} contains valid BGZF EOF bytes"); }
-            if footer.newline {println!("{path} contains final newline\n"); }
+            if footer.bgzf_eof {println!("- contains valid BGZF EOF bytes"); }
+            if footer.newline {println!("- contains final newline"); }
 
             // Byte-wise checks:
-
+            println!("\nByte-wise checks:");
             let bytewise_results = bytewise_checks(&bytewise_checks_input, &pipeline.to_string());
-            if !bytewise_results.is_ascii { println!("{path} contains non-ASCII bytes"); }
-            if bytewise_results.contains_offensive_bytes { println!("{path} contains unsupported ASCII bytes"); }
-            if bytewise_results.trailing_whitespace { println!("{path} contains trailing whitespace"); }
-            if bytewise_results.long_lines { println!("{path} contains lines longer than 80 characters\n"); }
-            if bytewise_results.empty_lines { println!("{path} contains empty lines"); }
+            if !bytewise_results.is_ascii { println!("- contains non-ASCII bytes"); }
+            if bytewise_results.contains_offensive_bytes { println!("- contains unsupported ASCII bytes"); }
+            if bytewise_results.trailing_whitespace { println!("- contains trailing whitespace"); }
+            if bytewise_results.long_lines { println!("- contains lines longer than 80 characters"); }
+            if bytewise_results.empty_lines { println!("- contains empty lines"); }
 
             if *&pipeline.as_str() == "fasta" {
+
+                println!("\nFastA file checks:");
+
+                if bytewise_results.empty_record { println!("- contains empty record"); }
+
                 let fasta = fasta::Fasta::new(&contents, &path);
                 if fasta.valid_start {
-                    println!("\nFastA starts with '>'")
+                    println!("- starts with '>'")
                 }
                 if fasta.valid_extension {
-                    println!("\nFastA has valid extension")
+                    println!("- has valid extension")
                 }
             } else if *&pipeline.as_str() == "fastq" {
+                println!("\nFastQ file checks:");
                 let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
 
                 if fastq.valid_extension {
-                    println!("\nFastQ has valid extension")
+                    println!("- has valid extension")
                 }
 
                 if fastq.valid_start {
-                    println!("\nFastQ starts with '@'")
+                    println!("- starts with '@'")
                 }
 
                 if fastq.four_line_entries {
-                    println!("\nFastQ has four-line entries")
+                    println!("- has four-line entries")
                 }
             }
 
