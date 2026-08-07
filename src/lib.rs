@@ -148,7 +148,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut in_header: bool = false;
     let mut in_seq_id: bool = false;
     let mut malformed_seq_id: bool = false;
-    
+    let mut malformed_sequence: bool = false;
+
     for byte in contents.iter() {
         // increase index
         i += 1;
@@ -215,6 +216,15 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 } else if *byte == 0x3E {
                     in_header = true;
                     in_seq_id = true;
+                } else {
+                    if !(byte.is_ascii_alphabetic() || matches!(byte, b'-' | b'.')) {
+                        if !malformed_sequence {
+                            println!{"\nWARNING: FastA sequence contains invalid characters. \
+                            Only IUPAC nucleotide symbols are allowed\n"};
+                        }
+
+                        malformed_sequence = true;
+                    }
                 }
 
             }
