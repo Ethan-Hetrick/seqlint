@@ -91,7 +91,7 @@ impl Footer {
     }
 }
 
-pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
+pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
     // Offending ASCII bytes
     // The below are mostly control characters with exceptions like NUL and CR
@@ -143,6 +143,9 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
     let mut is_ascii: bool = true;
     let mut contains_offensive_bytes: bool = false;
     let mut line_count: usize = 0usize;
+    let mut max_header_len: usize = 0usize;
+    let mut header_len: usize = 0usize;
+    let mut in_header: bool = false;
     for byte in contents.iter() {
         // increase index
         i += 1;
@@ -159,6 +162,8 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
         // count newlines
         if *byte == 0x0A {
             line_count += 1;
+            header_len = 0;
+            in_header = false;
 
             if emptyline && !emptyline_check {
                 emptyline_check = true;
@@ -171,16 +176,33 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
             if i > 2 && whitespaces.contains(&contents[i - 2]) && !trailing {
                 trailing = true;
             }
+
         } else {
             counter += 1;
             if counter > 80 && !long {
                 long = true;
             }
 
+            if pipeline == "fasta"  {
+                if in_header {
+                    header_len += 1;
+                    if header_len > max_header_len {
+                        max_header_len = header_len;
+                    }
+                } else if *byte == 0x3E {
+                    in_header = true;
+                }
+            }
+
             if !whitespaces.contains(byte) {
                 emptyline = false;
             }
         }
+    }
+
+    if max_header_len > 25 {
+        println!{"FastA header length exceeds 25 characters. \
+        Longest header is {max_header_len} characters long\n"}
     }
 
     ByteWiseCheck {

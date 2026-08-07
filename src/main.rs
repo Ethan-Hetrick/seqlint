@@ -51,7 +51,7 @@ fn main() -> io::Result<()> {
 
             // Byte-wise checks:
 
-            let bytewise_results = bytewise_checks(&bytewise_checks_input);
+            let bytewise_results = bytewise_checks(&bytewise_checks_input, &pipeline.to_string());
             if !bytewise_results.is_ascii { println!("{path} contains non-ASCII bytes"); }
             if bytewise_results.contains_offensive_bytes { println!("{path} contains unsupported ASCII bytes"); }
             if bytewise_results.trailing_whitespace { println!("{path} contains trailing whitespace"); }
