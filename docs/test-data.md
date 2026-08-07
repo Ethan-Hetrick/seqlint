@@ -59,4 +59,15 @@ samtools import -0 test/fixtures/test.fastq -O 'SAM' > test/fixtures/test.fastq.
 samtools import -0 test/fixtures/test.fastq -O 'BAM' > test/fixtures/test.fastq.bam
 
 samtools import -0 test/fixtures/test.fastq -O 'CRAM' > test/fixtures/test.fastq.cram
+
+sed 's|>|>\n>|g' test/fixtures/test.fasta > test/fixtures/test-empty-record.fasta
 ```
+
+## Downloads
+
+- [PhiX:](https://www.ncbi.nlm.nih.gov/nuccore/NC_001422.1?report=fasta)
+
+
+## Manual
+
+Anything else not mentioned was edited in manually via VSCode or nano text editors.
