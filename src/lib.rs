@@ -14,7 +14,7 @@ pub struct ByteWiseCheck {
 }
 
 #[derive(Debug)]
-struct Header {
+pub struct Header {
     utf_bom: bool,
     gzip_magic: bool,
     deflate: bool,
@@ -38,6 +38,28 @@ impl Header {
     fn cram_magic(contents: &Vec<u8>) -> bool {
         contents.starts_with(&[0x43, 0x52, 0x41, 0x4d])
     }
+
+    pub fn new (contents: &Vec<u8>, path: &String) -> bool {
+    // check: headers
+    let header = Header {
+        utf_bom: Header::utf_bom(&contents),
+        gzip_magic: Header::gzip_magic(&contents),
+        deflate: Header::is_deflate(&contents),
+        cram_magic: Header::cram_magic(&contents),
+    };
+
+    // Error if BOM exists
+    assert!(!header.utf_bom, "\n\nERROR: {path} contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
+
+    // Print if file is gzipped
+    if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
+
+    if header.deflate { println!{"\n{path} was compressed with DEFLATE\n"} }
+
+    if header.cram_magic { println!{"\n{path} is a CRAM file\n"} }
+
+    header.gzip_magic
+}
 }
 
 pub struct Footer {
@@ -46,7 +68,7 @@ pub struct Footer {
 }
 
 impl Footer {
-    pub fn bgzf_eof(contents: &Vec<u8>, size: &usize) -> bool {
+    fn bgzf_eof(contents: &Vec<u8>, size: &usize) -> bool {
 
         let eof = vec![0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
                        0x06, 0x00, 0x42, 0x43, 0x02, 0x00, 0x1b, 0x00, 0x03, 0x00,
@@ -55,8 +77,17 @@ impl Footer {
         *size >= eof.len() && contents[*size - eof.len()..] == eof
     }
 
-    pub fn check_final_newline (contents: &[u8], size: &usize) -> bool {
+    fn check_final_newline (contents: &[u8], size: &usize) -> bool {
         contents[*&size - 1] == 0x0A
+    }
+
+    pub fn new (contents: &Vec<u8>, size: &usize) -> Footer {
+        let footer = Footer {
+            newline: Footer::check_final_newline(&contents, &size),
+            bgzf_eof: Footer::bgzf_eof(&contents, &size),
+        };
+
+        footer
     }
 }
 
@@ -160,37 +191,6 @@ pub fn bytewise_checks(contents: &[u8]) -> ByteWiseCheck {
         empty_lines: emptyline_check,
         line_count: line_count,
     }
-}
-
-pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
-    // check: headers
-    let header = Header {
-        utf_bom: Header::utf_bom(&contents),
-        gzip_magic: Header::gzip_magic(&contents),
-        deflate: Header::is_deflate(&contents),
-        cram_magic: Header::cram_magic(&contents),
-    };
-
-    // Error if BOM exists
-    assert!(!header.utf_bom, "\n\nERROR: {path} contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
-
-    // Print if file is gzipped
-    if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
-
-    if header.deflate { println!{"\n{path} was compressed with DEFLATE\n"} }
-
-    if header.cram_magic { println!{"\n{path} is a CRAM file\n"} }
-
-    header.gzip_magic
-}
-
-pub fn check_footer (contents: &Vec<u8>, size: &usize) -> Footer {
-    let footer = Footer {
-        newline: Footer::check_final_newline(&contents, &size),
-        bgzf_eof: Footer::bgzf_eof(&contents, &size),
-    };
-
-    footer
 }
 
 pub fn integrity_checks(path: &String) -> usize {
