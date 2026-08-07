@@ -7,6 +7,9 @@ Doc to keep track of features I've added and want to add:
 - General heuristics:
   - File path is valid and readable
   - File is not empty and has at least 4 bytes for processing purposes
+  - That decompressed data is not empty
+  - Whitespace-only files
+  - compression formats complete header and truncation check
 
 - Magic byte checks
   - [x] gzip
@@ -37,6 +40,7 @@ Doc to keep track of features I've added and want to add:
     -  [x] NCBI seqID > 25 characters
     -  [x] NCBI seqID contains only accepted characters
     -  [x] sequence is IUPAC compatible
+    -  [ ] unique header / seqID
   - SAM | BAM | CRAM:
   - - [] File extension is a standard extension
     - [] Automatic detection / decompression of BAM/CRA
@@ -63,3 +67,7 @@ Doc to keep track of features I've added and want to add:
   - [x] lines don't exceed 80 characters (might move to FASTA sequence check per NCBI specification)
   - [] bgzip automatically detected and decompressed for file checks
   - [] CRAM automatically detected and decompressed for file checks
+
+## User experience
+
+- separate errors, warnings, compatibility or informational
