@@ -146,6 +146,9 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut max_header_len: usize = 0usize;
     let mut header_len: usize = 0usize;
     let mut in_header: bool = false;
+    let mut in_seq_id: bool = false;
+    let mut malformed_seq_id: bool = false;
+    
     for byte in contents.iter() {
         // increase index
         i += 1;
@@ -164,6 +167,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             line_count += 1;
             header_len = 0;
             in_header = false;
+            in_seq_id = false;
 
             if emptyline && !emptyline_check {
                 emptyline_check = true;
@@ -186,12 +190,33 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             if pipeline == "fasta"  {
                 if in_header {
                     header_len += 1;
+
+                    if *byte == 0x20 {
+                        in_seq_id = false;
+                    }
+
                     if header_len > max_header_len {
                         max_header_len = header_len;
                     }
+
+                    // The SeqID can only include letters, digits, hyphens (-),
+                    // underscores (_), periods (.), colons (:), asterisks (*),
+                    // and number signs (#)
+                    if in_seq_id && (byte.is_ascii_alphanumeric()
+                        || matches!(byte, b'-' | b'_' | b'.' | b':' | b'*' | b'#'))
+                    {
+                        // Valid chars
+                    } else if !malformed_seq_id && in_seq_id {
+                        malformed_seq_id = true;
+                        println!{"\nWARNING: FastA seqID contains invalid characters. \
+                        Only letters, digits, hyphens (-), underscores (_), periods (.),\
+                         colons (:), asterisks (*), and number signs (#) are allowed\n"}
+                    }
                 } else if *byte == 0x3E {
                     in_header = true;
+                    in_seq_id = true;
                 }
+
             }
 
             if !whitespaces.contains(byte) {

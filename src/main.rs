@@ -55,7 +55,7 @@ fn main() -> io::Result<()> {
             if !bytewise_results.is_ascii { println!("{path} contains non-ASCII bytes"); }
             if bytewise_results.contains_offensive_bytes { println!("{path} contains unsupported ASCII bytes"); }
             if bytewise_results.trailing_whitespace { println!("{path} contains trailing whitespace"); }
-            if bytewise_results.long_lines { println!("{path} contains lines longer than 80 characters"); }
+            if bytewise_results.long_lines { println!("{path} contains lines longer than 80 characters\n"); }
             if bytewise_results.empty_lines { println!("{path} contains empty lines"); }
 
             if *&pipeline.as_str() == "fasta" {
