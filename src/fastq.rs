@@ -12,7 +12,7 @@ impl Fastq {
         Fastq {
             valid_extension: VALID_FASTQ_EXTENSIONS
             .iter().any(|&ext| path.ends_with(ext) || path.ends_with(&format!("{}.gz", ext))),
-            valid_start: contents.starts_with(&[0x40]),
+            valid_start: contents.starts_with(&[b'@']),
             four_line_entries: (line_count % 4 == 0),
         }
     }

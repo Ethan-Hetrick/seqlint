@@ -197,7 +197,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
                     // Check for empty FastA records
                     if header_len == 1 {
-                        if !empty_record && i > 2 && contents[i - 2] == 0x3E  {
+                        if !empty_record && i > 2 && contents[i - 2] == b'>'  {
                             empty_record = true;
                         }
                     }
@@ -275,7 +275,7 @@ pub fn integrity_checks(path: &String) -> usize {
     assert!(*&size > 0, "\nERROR: {path} is empty\n");
 
     // check: has more than 3 bytes
-    assert!(*&size >= 3, "\nERROR: {path} < 3 bytes, unable to process\n");
+    assert!(*&size >= 4, "\nERROR: {path} < 3 bytes, unable to process\n");
 
     size
 }

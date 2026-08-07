@@ -10,7 +10,7 @@ impl Fasta {
         Fasta {
             valid_extension: VALID_FASTA_EXTENSIONS
             .iter().any(|&ext| path.ends_with(ext) || path.ends_with(&format!("{}.gz", ext))),
-            valid_start: contents.starts_with(&[0x3E])
+            valid_start: contents.starts_with(&[b'>'])
         }
     }
 }
