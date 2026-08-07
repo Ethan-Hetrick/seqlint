@@ -18,6 +18,7 @@ struct Header {
     utf_bom: bool,
     gzip_magic: bool,
     deflate: bool,
+    cram_magic: bool,
 }
 
 impl Header {
@@ -32,6 +33,10 @@ impl Header {
     fn is_deflate(contents: &Vec<u8>) -> bool {
         // 3rd byte set to 8 for DEFLATE]
         contents[2] == 8
+    }
+
+    fn cram_magic(contents: &Vec<u8>) -> bool {
+        contents.starts_with(&[0x43, 0x52, 0x41, 0x4d])
     }
 }
 
@@ -163,6 +168,7 @@ pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
         utf_bom: Header::utf_bom(&contents),
         gzip_magic: Header::gzip_magic(&contents),
         deflate: Header::is_deflate(&contents),
+        cram_magic: Header::cram_magic(&contents),
     };
 
     // Error if BOM exists
@@ -172,6 +178,8 @@ pub fn check_headers (contents: &Vec<u8>, path: &String) -> bool {
     if header.gzip_magic { println!("\n{path} is gzip-compressed\n"); }
 
     if header.deflate { println!{"\n{path} was compressed with DEFLATE\n"} }
+
+    if header.cram_magic { println!{"\n{path} is a CRAM file\n"} }
 
     header.gzip_magic
 }
