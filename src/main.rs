@@ -3,10 +3,12 @@ const FILE_TYPES: [&str; 2] = ["fasta", "fastq"];
 use std::{env,io};
 use std::fs;
 
-use seqlint::{bytewise_checks, check_headers, integrity_checks, check_footer, decode_reader};
+use seqlint::{bytewise_checks, integrity_checks, decode_reader};
 
 mod fasta;
 mod fastq;
+
+use seqlint::{Header,Footer};
 
 // FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
 // FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
@@ -33,7 +35,7 @@ fn main() -> io::Result<()> {
             let contents: Vec<u8> = fs::read(&path)?;
 
             // Check headers
-            let is_gzip: bool = check_headers(&contents, &path);
+            let is_gzip: bool = Header::new(&contents, &path);
 
             let bytewise_checks_input: Vec<u8> = if is_gzip {
                 decode_reader(&contents).unwrap()
@@ -43,7 +45,7 @@ fn main() -> io::Result<()> {
             };
 
             // Footer
-            let footer = check_footer(&contents, &size);
+            let footer = Footer::new(&contents, &size);
             if footer.bgzf_eof {println!("{path} contains valid BGZF EOF bytes"); }
             if footer.newline {println!("{path} contains final newline\n"); }
 
