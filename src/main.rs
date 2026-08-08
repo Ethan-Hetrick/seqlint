@@ -3,12 +3,13 @@ const FILE_TYPES: [&str; 2] = ["fasta", "fastq"];
 use std::{env,io};
 use std::fs;
 
-use seqlint::{bytewise_checks, integrity_checks, decode_reader};
-
+mod integrity;
 mod fasta;
 mod fastq;
+mod margins;
+mod scan;
 
-use seqlint::{Header,Footer};
+use margins::{Header,Footer};
 
 // FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
 // FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
@@ -22,7 +23,7 @@ fn main() -> io::Result<()> {
 
     for path in args.iter().skip(2) {
             // Run basic file integrity checks
-            let size: usize = integrity_checks(&path);
+            let size: usize = integrity::integrity_checks(&path);
 
             let abs_path = fs::canonicalize(&path)?.to_string_lossy().into_owned();
 
@@ -36,7 +37,7 @@ fn main() -> io::Result<()> {
             let is_gzip: bool = Header::new(&contents, &path);
 
             let bytewise_checks_input: Vec<u8> = if is_gzip {
-                decode_reader(&contents).unwrap()
+                scan::decode_reader(&contents).unwrap()
 
             } else {
                 contents.clone()
@@ -50,7 +51,7 @@ fn main() -> io::Result<()> {
 
             // Byte-wise checks:
             println!("\nByte-wise checks:");
-            let bytewise_results = bytewise_checks(&bytewise_checks_input, &pipeline.to_string());
+            let bytewise_results = scan::bytewise_checks(&bytewise_checks_input, &pipeline.to_string());
             if !bytewise_results.is_ascii { println!("- contains non-ASCII bytes"); }
             if bytewise_results.contains_offensive_bytes { println!("- contains unsupported ASCII bytes"); }
             if bytewise_results.trailing_whitespace { println!("- contains trailing whitespace"); }
