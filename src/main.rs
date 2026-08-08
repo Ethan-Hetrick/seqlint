@@ -75,16 +75,16 @@ fn main() -> io::Result<()> {
                 println!("\nFastQ file checks:");
                 let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
 
-                if fastq.valid_extension {
-                    println!("- has valid extension")
+                if !fastq.valid_extension {
+                    println!("- does not have recognized extension")
                 }
 
-                if fastq.valid_start {
-                    println!("- starts with '@'")
+                if !fastq.valid_start {
+                    println!("- fastq does not start with '@'")
                 }
 
-                if fastq.four_line_entries {
-                    println!("- has four-line entries")
+                if !fastq.four_line_entries {
+                    println!("- does not have four-line entries")
                 }
             }
 

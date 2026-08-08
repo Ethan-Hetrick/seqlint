@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::io;
 use flate2::read::GzDecoder;
-
+use seqlint::IupacByte;
 
 #[derive(Debug)]
 pub struct ByteWiseCheck {
@@ -12,6 +12,11 @@ pub struct ByteWiseCheck {
     pub empty_lines: bool,
     pub line_count: usize,
     pub empty_record: bool,
+}
+
+pub struct FastQ {
+    pub missing_header_character: bool,
+    pub missing_delimiter: bool,
 }
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
@@ -73,10 +78,19 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut malformed_seq_id: bool = false;
     let mut malformed_sequence: bool = false;
     let mut empty_record: bool = false;
+    let mut last_byte: bool = false;
+    let mut fastq_record = FastQ {
+        missing_header_character: false,
+        missing_delimiter: false,
+    };
 
     for byte in contents.iter() {
         // increase index
         i += 1;
+
+        if i == contents.len() {
+            last_byte = true;
+        }
 
         // check: all bytes are ASCII
         if !byte.is_ascii() {
@@ -106,6 +120,34 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 trailing = true;
             }
 
+            if pipeline == "fastq" {
+                // FastQ files are organized in four line entries
+                if !last_byte {
+                    if line_count > 1 && (line_count - 1) % 4 == 0 {   // 1/4 - Header line
+                        if &contents[i+1] != &b'@' && fastq_record.missing_header_character == false {
+                            println!{"- FastQ header line does not start with '@'"};
+                            fastq_record.missing_header_character = true;
+                        }
+                    } else if (line_count + 2) % 4 == 0 {               // 2/4 - Sequence line
+                        if &contents[i+1] != &b'+' && fastq_record.missing_delimiter == false {
+                            println!{"- FastQ sequence line does not start with '+'"};
+                            fastq_record.missing_delimiter = true;
+                        }
+                    }
+                }
+                if line_count > 1 && (line_count - 1) % 4 == 0 {   // 1/4 - Header line
+                    if &contents[i+1] != &b'@' && fastq_record.missing_header_character == false {
+                        println!{"- FastQ header line does not start with '@'"};
+                        fastq_record.missing_header_character = true;
+                    }
+                } else if (line_count + 2) % 4 == 0 {               // 2/4 - Sequence line
+                    if &contents[i+1] != &b'+' && fastq_record.missing_delimiter == false {
+                        println!{"- FastQ sequence line does not start with '+'"};
+                        fastq_record.missing_delimiter = true;
+                    }
+                }
+            }
+
         } else {
             counter += 1;
             if counter > 80 && !long {
@@ -123,7 +165,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         }
                     }
 
-                    if *byte == 0x20 {
+                    if *byte == b' ' {
                         in_seq_id = false;
                     }
 
@@ -144,11 +186,11 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         Only letters, digits, hyphens (-), underscores (_), periods (.),\
                          colons (:), asterisks (*), and number signs (#) are allowed"}
                     }
-                } else if *byte == 0x3E {
+                } else if *byte == b'>' {
                     in_header = true;
                     in_seq_id = true;
                 } else {
-                    if !(byte.is_ascii_alphabetic() || matches!(byte, b'-' | b'.')) {
+                    if !(byte.is_iupac_byte()) {
                         if !malformed_sequence {
                             println!{"- sequence contains invalid characters. \
                             Only IUPAC nucleotide symbols are allowed"};
@@ -157,7 +199,6 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         malformed_sequence = true;
                     }
                 }
-
             }
 
             if !whitespaces.contains(byte) {
