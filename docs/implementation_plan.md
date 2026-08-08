@@ -19,6 +19,7 @@ Doc to keep track of features I've added and want to add:
   - [x] Byte Order Marks (BOM)
         - [UTF8, UTF16_LE, UTF16_BE, UTF32_LE, UTF32_BE](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
   - [x] BZGF End-of-file (EOF) mark
+  - [x] BGZF header. 13th/14th byte subfield ID BC || DC || EC
   - [] format versioning
 
 - Scanning (byte-wise) checks:
