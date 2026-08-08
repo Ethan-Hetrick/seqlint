@@ -123,27 +123,16 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             if pipeline == "fastq" {
                 // FastQ files are organized in four line entries
                 if !last_byte {
-                    if line_count > 1 && (line_count - 1) % 4 == 0 {   // 1/4 - Header line
-                        if &contents[i+1] != &b'@' && fastq_record.missing_header_character == false {
+                    if line_count > 1 && line_count % 4 == 0 {   // 1/4 - Header line
+                        if &contents[i] != &b'@' && fastq_record.missing_header_character == false {
                             println!{"- FastQ header line does not start with '@'"};
                             fastq_record.missing_header_character = true;
                         }
                     } else if (line_count + 2) % 4 == 0 {               // 2/4 - Sequence line
-                        if &contents[i+1] != &b'+' && fastq_record.missing_delimiter == false {
+                        if &contents[i] != &b'+' && fastq_record.missing_delimiter == false {
                             println!{"- FastQ sequence line does not start with '+'"};
                             fastq_record.missing_delimiter = true;
                         }
-                    }
-                }
-                if line_count > 1 && (line_count - 1) % 4 == 0 {   // 1/4 - Header line
-                    if &contents[i+1] != &b'@' && fastq_record.missing_header_character == false {
-                        println!{"- FastQ header line does not start with '@'"};
-                        fastq_record.missing_header_character = true;
-                    }
-                } else if (line_count + 2) % 4 == 0 {               // 2/4 - Sequence line
-                    if &contents[i+1] != &b'+' && fastq_record.missing_delimiter == false {
-                        println!{"- FastQ sequence line does not start with '+'"};
-                        fastq_record.missing_delimiter = true;
                     }
                 }
             }
