@@ -16,9 +16,9 @@ Doc to keep track of features I've added and want to add:
   - [x] DEFLATE
   - [x] bgzip
   - [x] CRAM
-  - [x] UTF-8 Byte Order Mark (BOM)
-  - [ ] BZGF End-of-file (EOF) mark
-  - [] Other BOMs
+  - [x] Byte Order Marks (BOM)
+        - [UTF8, UTF16_LE, UTF16_BE, UTF32_LE, UTF32_BE](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
+  - [x] BZGF End-of-file (EOF) mark
   - [] format versioning
 
 - Scanning (byte-wise) checks:

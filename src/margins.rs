@@ -22,7 +22,7 @@ impl Header {
     }
 
     fn gzip_magic(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[0x1F, 0x8B])
+        contents.starts_with(&[31, 139])
     }
 
     fn is_deflate(contents: &Vec<u8>) -> bool {
@@ -31,7 +31,19 @@ impl Header {
     }
 
     fn cram_magic(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[0x43, 0x52, 0x41, 0x4d])
+        contents.starts_with(&[67, 82, 65, 77])
+    }
+
+    fn bgzf_header(contents: &Vec<u8>) {
+
+        // 13th and 14th byte check
+
+        match &contents[12..14] {
+            b"BC" => println!("- contains BGZF header (subfield ID 'BC')"),
+            b"EC" => println!("- contains BGZF header (subfield ID 'EC')"),
+            b"DC" => println!("- contains BGZF header (subfield ID 'DC')"),
+            _ => println!("- does not contain BGZF header"),
+        }
     }
 
     pub fn new (contents: &Vec<u8>, path: &String) -> bool {
@@ -48,7 +60,10 @@ impl Header {
         assert!(!header.utf_bom, "\n\nERROR: file contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
 
         // Print if file is gzipped
-        if header.gzip_magic { println!("- gzip-compressed"); }
+        if header.gzip_magic {
+            println!("- gzip-compressed");
+            Header::bgzf_header(&contents);
+        }
 
         if header.deflate { println!{"- compressed with DEFLATE"} }
 
