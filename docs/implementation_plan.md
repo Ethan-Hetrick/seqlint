@@ -70,4 +70,5 @@ Doc to keep track of features I've added and want to add:
 
 ## User experience
 
-- separate errors, warnings, compatibility or informational
+- [] separate errors, warnings, compatibility or informational
+- [] tabularize output: https://docs.rs/crate/tabled/latest
