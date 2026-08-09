@@ -47,7 +47,7 @@ Doc to keep track of features I've added and want to add:
     - [x] report record count and if it is even or odd
   - SAM | BAM | CRAM:
   - - [] File extension is a standard extension
-    - [] Automatic detection / decompression of BAM/CRA
+    - [] Automatic detection / decompression of BAM/CRAM
     - [] Header syntax
     - [] 11 fields
     - [] valid delimiter
@@ -69,6 +69,7 @@ Doc to keep track of features I've added and want to add:
   - [x] gzip automatically detected and decompressed for file checks
   - [x] trailing whitespace check
   - [x] lines don't exceed 80 characters (might move to FASTA sequence check per NCBI specification)
+  - [x] gzip-compressed file contents not empty
   - [] bgzip automatically detected and decompressed for file checks
   - [] CRAM automatically detected and decompressed for file checks
 
