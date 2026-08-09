@@ -36,6 +36,9 @@ Doc to keep track of features I've added and want to add:
     - [x] detect paired-end read nomenclature in file names "<..>_R{1,2}_<..>", "<..>_0{1,2}<.f..>"
     - [x] report record count and if it is even or odd
     - [x] sequence len = qual len
+    - [ ] phred quality encoding
+    - [ ] seq ID check
+    - [ ] The seqname following '+' is optional, but if it appears right after '+', it should be identical to the seqname following '@'.
   - FASTA:
     - [x] File extension is a standard extension
     - [x] First character is ">"
@@ -77,3 +80,8 @@ Doc to keep track of features I've added and want to add:
 
 - [ ] separate errors, warnings, compatibility or informational
 - [ ] tabularize output: https://docs.rs/crate/tabled/latest
+
+## Resources
+
+- https://maq.sourceforge.net/fastq.shtml
+- https://genome.ucsc.edu/FAQ/FAQformat.html
