@@ -86,6 +86,12 @@ fn main() -> io::Result<()> {
                 if !fastq.four_line_entries {
                     println!("- does not have four-line entries")
                 }
+
+                if fastq.paired_end_r1 {
+                    println!("- paired-end R1 file")
+                } else if fastq.paired_end_r2 {
+                    println!("- paired-end R2 file")
+                }
             }
 
     }

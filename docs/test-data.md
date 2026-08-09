@@ -66,6 +66,15 @@ samtools import -0 test/fixtures/test.fastq -O 'BAM' > test/fixtures/test.fastq.
 samtools import -0 test/fixtures/test.fastq -O 'CRAM' > test/fixtures/test.fastq.cram
 
 sed 's|>|>\n>|g' test/fixtures/test.fasta > test/fixtures/test-empty-record.fasta
+
+# Recycled synthetic illumina reads generated with bbtools randomreads.sh (version unsure)
+zcat ~/assets/synthetic_reads/GCF-000007765-2-ASM776v2_1.fastq.gz | head -12 > test/fixtures/test_R1_001.fastq && printf '/n' >> test/fixture
+s/test_R1_001.fastq
+zcat ~/assets/synthetic_reads/GCF-000007765-2-ASM776v2_2.fastq.gz | head -12 > test/fixtures/test_R2_001.fastq && printf '/n' >> test/fixture
+s/test_R2_001.fastq
+
+cp test/fixtures/test_R1_001.fastq test/fixtures/test_01.fastq
+cp test/fixtures/test_R2_001.fastq test/fixtures/test_02.fastq
 ```
 
 ## Downloads
