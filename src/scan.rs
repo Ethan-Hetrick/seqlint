@@ -2,6 +2,7 @@ use std::io::Read;
 use std::io;
 use flate2::read::GzDecoder;
 use seqlint::IupacByte;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct ByteWiseCheck {
@@ -19,6 +20,10 @@ pub struct FastQ {
     pub missing_delimiter: bool,
     pub bad_sequence: bool,
 }
+
+// pub struct FastA {
+//     pub bad_sequence:bool,
+// }
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
@@ -86,6 +91,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         missing_delimiter: false,
         bad_sequence: false,
     };
+    let mut record_set = HashSet::new();
+    let mut duplicate_header: bool = false;
 
     for byte in contents.iter() {
         // increase index
@@ -107,6 +114,15 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         // count newlines
         if *byte == 0x0A {
             line_count += 1;
+            if in_header {
+                let record = &contents[((i-1)-header_len)..(i-1)];
+                if record_set.insert(record) {
+                    // New record
+                } else if !duplicate_header {
+                    duplicate_header = true;
+                    println!("- duplicate headers")
+                }
+            }
             header_len = 0;
             in_header = false;
             in_seq_id = false;

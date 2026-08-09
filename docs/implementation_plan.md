@@ -37,13 +37,13 @@ Doc to keep track of features I've added and want to add:
     - [x] report record count and if it is even or odd
     - [] sequence len = qual len
   - FASTA:
-    -  [x] File extension is a standard extension
-    -  [x] First character is ">"
-    -  [x] empty records
-    -  [x] NCBI seqID > 25 characters
-    -  [x] NCBI seqID contains only accepted characters
-    -  [x] sequence is IUPAC compatible
-    -  [ ] unique header / seqID
+    - [x] File extension is a standard extension
+    - [x] First character is ">"
+    - [x] empty records
+    - [x] NCBI seqID > 25 characters
+    - [x] NCBI seqID contains only accepted characters
+    - [x] sequence is IUPAC compatible
+    - [x] duplicate header
     - [x] report record count and if it is even or odd
   - SAM | BAM | CRAM:
   - - [] File extension is a standard extension
