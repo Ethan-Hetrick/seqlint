@@ -14,11 +14,11 @@ pub struct Header {
 
 impl Header {
     fn utf_bom(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&UTF8_BOM) ||
-        contents.starts_with(&UTF16_LE_BOM) ||
-        contents.starts_with(&UTF16_BE_BOM) ||
-        contents.starts_with(&UTF32_LE_BOM) ||
-        contents.starts_with(&UTF32_BE_BOM)
+        contents.starts_with(&UTF8_BOM)
+            || contents.starts_with(&UTF16_LE_BOM)
+            || contents.starts_with(&UTF16_BE_BOM)
+            || contents.starts_with(&UTF32_LE_BOM)
+            || contents.starts_with(&UTF32_BE_BOM)
     }
 
     fn gzip_magic(contents: &Vec<u8>) -> bool {
@@ -35,7 +35,6 @@ impl Header {
     }
 
     fn bgzf_header(contents: &Vec<u8>) {
-
         // 13th and 14th byte check
 
         match &contents[12..14] {
@@ -46,7 +45,7 @@ impl Header {
         }
     }
 
-    pub fn new (contents: &Vec<u8>, path: &String) -> bool {
+    pub fn new(contents: &Vec<u8>, path: &String) -> bool {
         // check: headers
         println!("\nHeader checks:");
         let header = Header {
@@ -57,7 +56,10 @@ impl Header {
         };
 
         // Error if BOM exists
-        assert!(!header.utf_bom, "\n\nERROR: file contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n");
+        assert!(
+            !header.utf_bom,
+            "\n\nERROR: file contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n"
+        );
 
         // Print if file is gzipped
         if header.gzip_magic {
@@ -65,9 +67,13 @@ impl Header {
             Header::bgzf_header(&contents);
         }
 
-        if header.deflate { println!{"- compressed with DEFLATE"} }
+        if header.deflate {
+            println! {"- compressed with DEFLATE"}
+        }
 
-        if header.cram_magic { println!{"- is a CRAM file"} }
+        if header.cram_magic {
+            println! {"- is a CRAM file"}
+        }
 
         header.gzip_magic
     }
@@ -80,19 +86,19 @@ pub struct Footer {
 
 impl Footer {
     fn bgzf_eof(contents: &Vec<u8>, size: &usize) -> bool {
-
-        let eof = vec![0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-                       0x06, 0x00, 0x42, 0x43, 0x02, 0x00, 0x1b, 0x00, 0x03, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ];
+        let eof = vec![
+            0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x06, 0x00, 0x42, 0x43,
+            0x02, 0x00, 0x1b, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
 
         *size >= eof.len() && contents[*size - eof.len()..] == eof
     }
 
-    fn check_final_newline (contents: &[u8], size: &usize) -> bool {
+    fn check_final_newline(contents: &[u8], size: &usize) -> bool {
         contents[*&size - 1] == 0x0A
     }
 
-    pub fn new (contents: &Vec<u8>, size: &usize) -> Footer {
+    pub fn new(contents: &Vec<u8>, size: &usize) -> Footer {
         let footer = Footer {
             newline: Footer::check_final_newline(&contents, &size),
             bgzf_eof: Footer::bgzf_eof(&contents, &size),

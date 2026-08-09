@@ -1,8 +1,8 @@
-use std::io::Read;
-use std::io;
 use flate2::read::GzDecoder;
-use seqlint::IupacByte;
+use seqlint::{is_iupac_byte, is_offender, is_whitespace};
 use std::collections::HashSet;
+use std::io;
+use std::io::Read;
 
 #[derive(Debug)]
 pub struct ByteWiseCheck {
@@ -26,48 +26,6 @@ pub struct FastQ {
 // }
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
-
-    // Offending ASCII bytes
-    // The below are mostly control characters with exceptions like NUL and CR
-    let offenders: Vec<u8> = vec![
-        0x00, // NUL
-        0x01, // SOH
-        0x02, // STX
-        0x03, // ETX
-        0x04, // EOT
-        0x05, // ENQ
-        0x06, // ACK
-        0x07, // BEL
-        0x08, // BS
-        0x0B, // VT
-        0x0C, // FF
-        0x0D, // CR
-        0x0E, // SO
-        0x0F, // SI
-        0x10, // DLE
-        0x11, // DC1
-        0x12, // DC2
-        0x13, // DC3
-        0x14, // DC4
-        0x15, // NAK
-        0x16, // SYN
-        0x17, // ETB
-        0x18, // CAN
-        0x19, // EM
-        0x1A, // SUB
-        0x1B, // ESC
-        0x1C, // FS
-        0x1D, // GS
-        0x1E, // RS
-        0x1F, // US
-        0x7F, // DEL
-    ];
-
-    let whitespaces: Vec<u8> = vec![
-        0x09, // HT (TAB),
-        0x20, // space,
-    ];
-
     let mut counter: u32 = 0;
     let mut i: usize = 0;
     let mut long: bool = false;
@@ -107,7 +65,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             is_ascii = false;
         }
         // check: offending ASCII bytes
-        if offenders.contains(byte) {
+        if is_offender(*byte) {
             contains_offensive_bytes = true;
         }
 
@@ -115,7 +73,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         if *byte == 0x0A {
             line_count += 1;
             if in_header {
-                let record = &contents[((i-1)-header_len)..(i-1)];
+                let record = &contents[((i - 1) - header_len)..(i - 1)];
                 if record_set.insert(record) {
                     // New record
                 } else if !duplicate_header {
@@ -135,27 +93,28 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             counter = 0;
 
             // check: trailing whitespace
-            if i > 2 && whitespaces.contains(&contents[i - 2]) && !trailing {
+            if i > 2 && is_whitespace(contents[i - 2]) && !trailing {
                 trailing = true;
             }
 
             if pipeline == "fastq" {
                 // FastQ files are organized in four line entries
                 if !last_byte {
-                    if line_count > 1 && line_count % 4 == 0 {   // 1/4 - Header line
+                    if line_count > 1 && line_count % 4 == 0 {
+                        // 1/4 - Header line
                         if &contents[i] != &b'@' && fastq_record.missing_header_character == false {
-                            println!{"- FastQ header line does not start with '@'"};
+                            println! {"- FastQ header line does not start with '@'"};
                             fastq_record.missing_header_character = true;
                         }
-                    } else if (line_count + 2) % 4 == 0 {               // 2/4 - Sequence line
+                    } else if (line_count + 2) % 4 == 0 {
+                        // 2/4 - Sequence line
                         if &contents[i] != &b'+' && fastq_record.missing_delimiter == false {
-                            println!{"- FastQ sequence line does not start with '+'"};
+                            println! {"- FastQ sequence line does not start with '+'"};
                             fastq_record.missing_delimiter = true;
                         }
                     }
                 }
             }
-
         } else {
             counter += 1;
             if counter > 80 && !long {
@@ -164,32 +123,37 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
             if pipeline == "fastq" {
                 if (*byte == b'@' && i == 1)
-                    || (i >= 2 && *byte == b'@' && contents[i-2] == b'\n') {
+                    || (i >= 2 && *byte == b'@' && contents[i - 2] == b'\n')
+                {
                     record_count += 1;
                 }
-                if (line_count + 3) % 4 == 0 { // Sequence line
-                        if !byte.is_iupac_byte() {
-                            if !fastq_record.bad_sequence {
-                                println!("- FastQ sequence line contains invalid characters. Only IUPAC nucleotide symbols are allowed");
-                            }
-                            fastq_record.bad_sequence = true;
+                if (line_count + 3) % 4 == 0 {
+                    // Sequence line
+                    if !is_iupac_byte(*byte) {
+                        if !fastq_record.bad_sequence {
+                            println!(
+                                "- FastQ sequence line contains invalid characters. Only IUPAC nucleotide symbols are allowed"
+                            );
                         }
+                        fastq_record.bad_sequence = true;
                     }
+                }
             }
 
-            if pipeline == "fasta"  {
+            if pipeline == "fasta" {
                 if in_header {
                     header_len += 1;
 
                     // Check for empty FastA records
                     if header_len == 1 {
-                        if !empty_record && i > 2 && contents[i - 2] == b'>'  {
+                        if !empty_record && i > 2 && contents[i - 2] == b'>' {
                             empty_record = true;
                         }
                     }
 
                     if (*byte == b'>' && i == 1)
-                    || (i >= 2 && *byte == b'>' && contents[i-2] == b'\n') {
+                        || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
+                    {
                         record_count += 1;
                     }
 
@@ -204,24 +168,25 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                     // The SeqID can only include letters, digits, hyphens (-),
                     // underscores (_), periods (.), colons (:), asterisks (*),
                     // and number signs (#)
-                    if in_seq_id && (byte.is_ascii_alphanumeric()
-                        || matches!(byte, b'-' | b'_' | b'.' | b':' | b'*' | b'#'))
+                    if in_seq_id
+                        && (byte.is_ascii_alphanumeric()
+                            || matches!(byte, b'-' | b'_' | b'.' | b':' | b'*' | b'#'))
                     {
                         // Valid chars
                     } else if !malformed_seq_id && in_seq_id {
                         malformed_seq_id = true;
-                        println!{"- seqID contains invalid characters.\n\t\
+                        println! {"- seqID contains invalid characters.\n\t\
                         Only letters, digits, hyphens (-), underscores (_), periods (.),\
-                         colons (:), asterisks (*), and number signs (#) are allowed"}
+                        colons (:), asterisks (*), and number signs (#) are allowed"}
                     }
                 } else if *byte == b'>' {
                     in_header = true;
                     in_seq_id = true;
                     record_count += 1;
                 } else {
-                    if !(byte.is_iupac_byte()) {
+                    if !is_iupac_byte(*byte) {
                         if !malformed_sequence {
-                            println!{"- sequence contains invalid characters. \
+                            println! {"- sequence contains invalid characters. \
                             Only IUPAC nucleotide symbols are allowed"};
                         }
 
@@ -230,11 +195,10 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 }
             }
 
-            if !whitespaces.contains(byte) {
+            if !is_whitespace(*byte) {
                 emptyline = false;
             }
         }
-
     }
 
     if record_count == 0 {
@@ -246,7 +210,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     }
 
     if max_header_len > 25 {
-        println!{"- header length exceeds 25 characters.\n\t\
+        println! {"- header length exceeds 25 characters.\n\t\
         Longest header is {max_header_len} characters long"}
     }
 
@@ -262,9 +226,9 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 }
 
 pub fn decode_reader(bytes: &Vec<u8>) -> io::Result<Vec<u8>> {
-   let mut gz: GzDecoder<&[u8]> = GzDecoder::new(&bytes[..]);
-   let mut decompressed_contents = Vec::new();
-   let _ = gz.read_to_end(&mut decompressed_contents);
+    let mut gz: GzDecoder<&[u8]> = GzDecoder::new(&bytes[..]);
+    let mut decompressed_contents = Vec::new();
+    let _ = gz.read_to_end(&mut decompressed_contents);
 
-   Ok(decompressed_contents)
+    Ok(decompressed_contents)
 }
