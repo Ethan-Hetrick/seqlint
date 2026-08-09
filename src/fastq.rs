@@ -15,11 +15,16 @@ impl Fastq {
 
         Fastq {
             valid_extension: VALID_FASTQ_EXTENSIONS
-                .iter().any(|&ext| path_no_gz.ends_with(ext)),
+                .iter()
+                .any(|&ext| path_no_gz.ends_with(ext)),
             valid_start: contents.starts_with(&[b'@']),
             four_line_entries: (line_count % 4 == 0),
-            paired_end_r1: path_no_gz.contains("_R1_") || path_no_gz.ends_with("_01.fastq") || path_no_gz.ends_with("_01.fq"),
-            paired_end_r2: path_no_gz.contains("_R2_") || path_no_gz.ends_with("_02.fastq") || path_no_gz.ends_with("_02.fq"),
+            paired_end_r1: path_no_gz.contains("_R1_")
+                || path_no_gz.ends_with("_01.fastq")
+                || path_no_gz.ends_with("_01.fq"),
+            paired_end_r2: path_no_gz.contains("_R2_")
+                || path_no_gz.ends_with("_02.fastq")
+                || path_no_gz.ends_with("_02.fq"),
         }
     }
 }
