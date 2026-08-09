@@ -34,7 +34,7 @@ Doc to keep track of features I've added and want to add:
     - [x] 2nd line of every record begins with "+"
     - [x] sequence is IUPAC compatible
     - [x] detect paired-end read nomenclature in file names "<..>_R{1,2}_<..>", "<..>_0{1,2}<.f..>"
-    - [] interleaved checks (e.g. even # records)
+    - [x] report record count and if it is even or odd
     - [] sequence len = qual len
   - FASTA:
     -  [x] File extension is a standard extension
@@ -44,6 +44,7 @@ Doc to keep track of features I've added and want to add:
     -  [x] NCBI seqID contains only accepted characters
     -  [x] sequence is IUPAC compatible
     -  [ ] unique header / seqID
+    - [x] report record count and if it is even or odd
   - SAM | BAM | CRAM:
   - - [] File extension is a standard extension
     - [] Automatic detection / decompression of BAM/CRA

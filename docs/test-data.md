@@ -75,6 +75,8 @@ s/test_R2_001.fastq
 
 cp test/fixtures/test_R1_001.fastq test/fixtures/test_01.fastq
 cp test/fixtures/test_R2_001.fastq test/fixtures/test_02.fastq
+
+head -8 test/fixtures/test.fastq > test/fixtures/2-records.fastq && printf '/n' >> test/fixtures/2-records.fastq
 ```
 
 ## Downloads
