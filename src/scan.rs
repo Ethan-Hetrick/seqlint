@@ -76,7 +76,6 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut header_len: usize = 0usize;
     let mut in_header: bool = false;
     let mut in_seq_id: bool = false;
-    let mut in_sequence: bool = false;
     let mut malformed_seq_id: bool = false;
     let mut malformed_sequence: bool = false;
     let mut empty_record: bool = false;

@@ -33,7 +33,7 @@ Doc to keep track of features I've added and want to add:
     - [x] 1st line of every record begins with "@"
     - [x] 2nd line of every record begins with "+"
     - [x] sequence is IUPAC compatible
-    - [] paired-end checks (e.g. names match, same # records)
+    - [x] detect paired-end read nomenclature in file names "<..>_R{1,2}_<..>", "<..>_0{1,2}<.f..>"
     - [] interleaved checks (e.g. even # records)
     - [] sequence len = qual len
   - FASTA:
