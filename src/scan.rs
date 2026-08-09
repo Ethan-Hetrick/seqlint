@@ -17,6 +17,7 @@ pub struct ByteWiseCheck {
 pub struct FastQ {
     pub missing_header_character: bool,
     pub missing_delimiter: bool,
+    pub bad_sequence: bool,
 }
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
@@ -75,6 +76,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut header_len: usize = 0usize;
     let mut in_header: bool = false;
     let mut in_seq_id: bool = false;
+    let mut in_sequence: bool = false;
     let mut malformed_seq_id: bool = false;
     let mut malformed_sequence: bool = false;
     let mut empty_record: bool = false;
@@ -82,6 +84,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut fastq_record = FastQ {
         missing_header_character: false,
         missing_delimiter: false,
+        bad_sequence: false,
     };
 
     for byte in contents.iter() {
@@ -141,6 +144,17 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             counter += 1;
             if counter > 80 && !long {
                 long = true;
+            }
+
+            if pipeline == "fastq" {
+                if (line_count + 3) % 4 == 0 { // Sequence line
+                        if !byte.is_iupac_byte() {
+                            if !fastq_record.bad_sequence {
+                                println!("- FastQ sequence line contains invalid characters. Only IUPAC nucleotide symbols are allowed");
+                            }
+                            fastq_record.bad_sequence = true;
+                        }
+                    }
             }
 
             if pipeline == "fasta"  {

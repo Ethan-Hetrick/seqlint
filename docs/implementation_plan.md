@@ -32,7 +32,7 @@ Doc to keep track of features I've added and want to add:
     - [x] First character is "@"
     - [x] 1st line of every record begins with "@"
     - [x] 2nd line of every record begins with "+"
-    - [] sequence is IUPAC compatible
+    - [x] sequence is IUPAC compatible
     - [] paired-end checks (e.g. names match, same # records)
     - [] interleaved checks (e.g. even # records)
     - [] sequence len = qual len
