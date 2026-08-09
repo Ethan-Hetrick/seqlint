@@ -43,6 +43,8 @@ fn main() -> io::Result<()> {
                 contents.clone()
             };
 
+            assert!(bytewise_checks_input.len() > 0, "\n- file contents empty\n");
+
             // Footer
             println!("\nFooter checks:");
             let footer = Footer::new(&contents, &size);
