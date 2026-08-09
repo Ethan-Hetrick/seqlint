@@ -80,6 +80,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut malformed_sequence: bool = false;
     let mut empty_record: bool = false;
     let mut last_byte: bool = false;
+    let mut record_count: usize = 0;
     let mut fastq_record = FastQ {
         missing_header_character: false,
         missing_delimiter: false,
@@ -146,6 +147,10 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             }
 
             if pipeline == "fastq" {
+                if (*byte == b'@' && i == 1)
+                    || (i >= 2 && *byte == b'@' && contents[i-2] == b'\n') {
+                    record_count += 1;
+                }
                 if (line_count + 3) % 4 == 0 { // Sequence line
                         if !byte.is_iupac_byte() {
                             if !fastq_record.bad_sequence {
@@ -165,6 +170,11 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         if !empty_record && i > 2 && contents[i - 2] == b'>'  {
                             empty_record = true;
                         }
+                    }
+
+                    if (*byte == b'>' && i == 1)
+                    || (i >= 2 && *byte == b'>' && contents[i-2] == b'\n') {
+                        record_count += 1;
                     }
 
                     if *byte == b' ' {
@@ -191,6 +201,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 } else if *byte == b'>' {
                     in_header = true;
                     in_seq_id = true;
+                    record_count += 1;
                 } else {
                     if !(byte.is_iupac_byte()) {
                         if !malformed_sequence {
@@ -207,6 +218,15 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 emptyline = false;
             }
         }
+
+    }
+
+    if record_count == 0 {
+        println!("- Zero records found");
+    } else if record_count % 2 != 0 {
+        println!("- Odd number of records: {}", record_count);
+    } else {
+        println!("- Even number of records: {}", record_count);
     }
 
     if max_header_len > 25 {
