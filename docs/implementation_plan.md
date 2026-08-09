@@ -35,7 +35,7 @@ Doc to keep track of features I've added and want to add:
     - [x] sequence is IUPAC compatible
     - [x] detect paired-end read nomenclature in file names "<..>_R{1,2}_<..>", "<..>_0{1,2}<.f..>"
     - [x] report record count and if it is even or odd
-    - [] sequence len = qual len
+    - [x] sequence len = qual len
   - FASTA:
     - [x] File extension is a standard extension
     - [x] First character is ">"
