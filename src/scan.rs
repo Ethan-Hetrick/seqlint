@@ -51,6 +51,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     };
     let mut record_set = HashSet::new();
     let mut duplicate_header: bool = false;
+    let mut sequence_length: usize = 0;
+    let mut quality_length: usize = 0;
 
     for byte in contents.iter() {
         // increase index
@@ -122,13 +124,19 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             }
 
             if pipeline == "fastq" {
-                if (*byte == b'@' && i == 1)
-                    || (i >= 2 && *byte == b'@' && contents[i - 2] == b'\n')
+                if (*byte == b'@' && line_count == 0)
+                    || (i >= 2 && *byte == b'@' && contents[i - 2] == b'\n' && line_count %4 == 0)
                 {
                     record_count += 1;
+                    if sequence_length != quality_length {
+                        println!("seq != qual");
+                    }
+                    sequence_length = 0;
+                    quality_length = 0;
                 }
                 if (line_count + 3) % 4 == 0 {
                     // Sequence line
+                    sequence_length += 1;
                     if !is_iupac_byte(*byte) {
                         if !fastq_record.bad_sequence {
                             println!(
@@ -137,6 +145,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         }
                         fastq_record.bad_sequence = true;
                     }
+                } else if (line_count + 1) % 4 == 0 { // Quality scores line
+                    quality_length += 1;
                 }
             }
 
@@ -199,6 +209,10 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 emptyline = false;
             }
         }
+    }
+
+    if sequence_length != quality_length {
+            println!("- Sequence and quality line lengths do not match");
     }
 
     if record_count == 0 {
