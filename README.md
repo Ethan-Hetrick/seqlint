@@ -113,6 +113,7 @@ seqlint <fasta,fastq> <file1 file2 file3 ...>
 
 **User experience**
 
+- [x] CLI
 - [ ] Separate errors, warnings, compatibility, and informational messages
 - [ ] Tabularized output ([tabled](https://docs.rs/crate/tabled/latest))
 

@@ -21,9 +21,24 @@ pub struct FastQ {
     pub bad_sequence: bool,
 }
 
-// pub struct FastA {
-//     pub bad_sequence:bool,
-// }
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum FastqState {
+    Header,
+    Sequence,
+    Separator,
+    Quality
+}
+
+impl FastqState {
+    fn next(self) -> Self {
+        match self {
+            FastqState::Header => FastqState::Sequence,
+            FastqState::Sequence => FastqState::Separator,
+            FastqState::Separator => FastqState::Quality,
+            FastqState::Quality => FastqState::Header
+        }
+    }
+}
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut counter: u32 = 0;
@@ -42,7 +57,6 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut malformed_seq_id: bool = false;
     let mut malformed_sequence: bool = false;
     let mut empty_record: bool = false;
-    let mut last_byte: bool = false;
     let mut record_count: usize = 0;
     let mut fastq_record = FastQ {
         missing_header_character: false,
@@ -53,14 +67,12 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut duplicate_header: bool = false;
     let mut sequence_length: usize = 0;
     let mut quality_length: usize = 0;
+    let mut fastq_state = FastqState::Header;
+    let mut line_start: bool = true;
 
     for byte in contents.iter() {
         // increase index
         i += 1;
-
-        if i == contents.len() {
-            last_byte = true;
-        }
 
         // check: all bytes are ASCII
         if !byte.is_ascii() {
@@ -99,23 +111,22 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 trailing = true;
             }
 
+            line_start = false;
+
+            // Note: this sequence occurs at every newline
             if pipeline == "fastq" {
-                // FastQ files are organized in four line entries
-                if !last_byte {
-                    if line_count > 1 && line_count % 4 == 0 {
-                        // 1/4 - Header line
-                        if &contents[i] != &b'@' && fastq_record.missing_header_character == false {
-                            println! {"- FastQ header line does not start with '@'"};
-                            fastq_record.missing_header_character = true;
-                        }
-                    } else if (line_count + 2) % 4 == 0 {
-                        // 2/4 - Sequence line
-                        if &contents[i] != &b'+' && fastq_record.missing_delimiter == false {
-                            println! {"- FastQ sequence line does not start with '+'"};
-                            fastq_record.missing_delimiter = true;
-                        }
+                if fastq_state == FastqState::Quality {
+                    record_count += 1;
+
+                    if sequence_length != quality_length {
+                        println!("- record and sequence lengths differ")
                     }
+                    sequence_length = 0;
+                    quality_length = 0;
                 }
+
+                fastq_state = fastq_state.next();
+                line_start = true;
             }
         } else {
             counter += 1;
@@ -124,30 +135,33 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             }
 
             if pipeline == "fastq" {
-                if (*byte == b'@' && line_count == 0)
-                    || (i >= 2 && *byte == b'@' && contents[i - 2] == b'\n' && line_count % 4 == 0)
-                {
-                    record_count += 1;
-                    if sequence_length != quality_length {
-                        println!("seq != qual");
-                    }
-                    sequence_length = 0;
-                    quality_length = 0;
-                }
-                if (line_count + 3) % 4 == 0 {
-                    // Sequence line
-                    sequence_length += 1;
-                    if !is_iupac_byte(*byte) {
-                        if !fastq_record.bad_sequence {
-                            println!(
-                                "- FastQ sequence line contains invalid characters. Only IUPAC nucleotide symbols are allowed"
-                            );
+                match fastq_state {
+                    FastqState::Header => {
+                        if line_start && *byte != b'@' && !fastq_record.missing_header_character {
+                            println! {"- FastQ header line does not start with '@'"};
+                            fastq_record.missing_header_character = true;
                         }
-                        fastq_record.bad_sequence = true;
                     }
-                } else if (line_count + 1) % 4 == 0 {
-                    // Quality scores line
-                    quality_length += 1;
+                    FastqState::Sequence => {
+                        sequence_length += 1;
+
+                        if !is_iupac_byte(*byte) && !fastq_record.bad_sequence {
+                            println!("- FastQ sequence line contains invalid characters. \
+                            Only IUPAC nucleotide symbols are allowed");
+                            fastq_record.bad_sequence = true;
+                        }
+                    }
+
+                    FastqState::Separator => {
+                        if line_start && *byte !=b'+' && !fastq_record.missing_delimiter {
+                            println! {"- FastQ sequence line does not start with '+'"};
+                            fastq_record.missing_delimiter = true;
+                        }
+                    }
+
+                    FastqState::Quality => {
+                        quality_length += 1;
+                    }
                 }
             }
 
