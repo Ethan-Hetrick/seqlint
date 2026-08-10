@@ -120,3 +120,5 @@ seqlint <fasta,fastq> <file1 file2 file3 ...>
 
 - [MAQ FASTQ specification](https://maq.sourceforge.net/fastq.shtml)
 - [UCSC Genome Browser FAQ: File Formats](https://genome.ucsc.edu/FAQ/FAQformat.html)
+- [NCBI FASTA format specification](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
+- [NCBI FASTQ format specification](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)

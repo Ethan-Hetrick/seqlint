@@ -11,9 +11,6 @@ mod scan;
 
 use margins::{Footer, Header};
 
-// FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
-// FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
-
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
