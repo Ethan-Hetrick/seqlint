@@ -1,7 +1,7 @@
-const FILE_TYPES: [&str; 2] = ["fasta", "fastq"];
-
+use clap::{Parser, ValueEnum};
 use std::fs;
-use std::{env, io};
+use std::io;
+use std::path::PathBuf;
 
 mod fasta;
 mod fastq;
@@ -11,16 +11,31 @@ mod scan;
 
 use margins::{Footer, Header};
 
+#[derive(Parser, Debug)]
+#[command(version, about = "Linter for biological sequence data files")]
+struct Args {
+    pipeline: Pipeline,
+    files: Vec<PathBuf>,
+}
+
+#[derive(Clone, Debug, ValueEnum)]
+#[value(rename_all = "lowercase")]
+enum Pipeline {
+    Fasta,
+    Fastq,
+}
+
 fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
-    let pipeline = args.get(1).expect("ERROR: Must provide at least one arg");
-    assert!(
-        FILE_TYPES.contains(&pipeline.as_str()),
-        "\nERROR: First arg must be 'fasta' or 'fastq'"
-    );
+    let pipeline_selection = match args.pipeline {
+        Pipeline::Fasta => "fasta".to_string(),
+        Pipeline::Fastq => "fastq".to_string(),
+    };
 
-    for path in args.iter().skip(2) {
+    for path_buf in &args.files {
+        let path = path_buf.to_string_lossy().into_owned();
+
         // Run basic file integrity checks
         let size: usize = integrity::integrity_checks(&path);
 
@@ -55,7 +70,7 @@ fn main() -> io::Result<()> {
 
         // Byte-wise checks:
         println!("\nByte-wise checks:");
-        let bytewise_results = scan::bytewise_checks(&bytewise_checks_input, &pipeline.to_string());
+        let bytewise_results = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection);
         if !bytewise_results.is_ascii {
             println!("- contains non-ASCII bytes");
         }
@@ -72,40 +87,43 @@ fn main() -> io::Result<()> {
             println!("- contains empty lines");
         }
 
-        if *&pipeline.as_str() == "fasta" {
-            println!("\nFastA file checks:");
+        match args.pipeline {
+            Pipeline::Fasta => {
+                println!("\nFastA file checks:");
 
-            if bytewise_results.empty_record {
-                println!("- contains empty record");
-            }
+                if bytewise_results.empty_record {
+                    println!("- contains empty record");
+                }
 
-            let fasta = fasta::Fasta::new(&contents, &path);
-            if fasta.valid_start {
-                println!("- starts with '>'")
+                let fasta = fasta::Fasta::new(&contents, &path);
+                if fasta.valid_start {
+                    println!("- starts with '>'")
+                }
+                if fasta.valid_extension {
+                    println!("- has valid extension")
+                }
             }
-            if fasta.valid_extension {
-                println!("- has valid extension")
-            }
-        } else if *&pipeline.as_str() == "fastq" {
-            println!("\nFastQ file checks:");
-            let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
+            Pipeline::Fastq => {
+                println!("\nFastQ file checks:");
+                let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
 
-            if !fastq.valid_extension {
-                println!("- does not have recognized extension")
-            }
+                if !fastq.valid_extension {
+                    println!("- does not have recognized extension")
+                }
 
-            if !fastq.valid_start {
-                println!("- fastq does not start with '@'")
-            }
+                if !fastq.valid_start {
+                    println!("- fastq does not start with '@'")
+                }
 
-            if !fastq.four_line_entries {
-                println!("- does not have four-line entries")
-            }
+                if !fastq.four_line_entries {
+                    println!("- does not have four-line entries")
+                }
 
-            if fastq.paired_end_r1 {
-                println!("- paired-end R1 file")
-            } else if fastq.paired_end_r2 {
-                println!("- paired-end R2 file")
+                if fastq.paired_end_r1 {
+                    println!("- paired-end R1 file")
+                } else if fastq.paired_end_r2 {
+                    println!("- paired-end R2 file")
+                }
             }
         }
     }
