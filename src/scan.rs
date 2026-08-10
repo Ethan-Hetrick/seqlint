@@ -138,7 +138,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 match fastq_state {
                     FastqState::Header => {
                         if line_start && *byte != b'@' && !fastq_record.missing_header_character {
-                            println! {"- FastQ header line does not start with '@'"};
+                            println! {"- header line does not start with '@'"};
                             fastq_record.missing_header_character = true;
                         }
                     }
@@ -146,7 +146,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         sequence_length += 1;
 
                         if !is_iupac_byte(*byte) && !fastq_record.bad_sequence {
-                            println!("- FastQ sequence line contains invalid characters. \
+                            println!("- sequence line contains invalid characters. \
                             Only IUPAC nucleotide symbols are allowed");
                             fastq_record.bad_sequence = true;
                         }
@@ -154,7 +154,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
                     FastqState::Separator => {
                         if line_start && *byte !=b'+' && !fastq_record.missing_delimiter {
-                            println! {"- FastQ sequence line does not start with '+'"};
+                            println! {"- sequence line does not start with '+'"};
                             fastq_record.missing_delimiter = true;
                         }
                     }
