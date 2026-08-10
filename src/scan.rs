@@ -19,6 +19,16 @@ pub struct FastQ {
     pub missing_header_character: bool,
     pub missing_delimiter: bool,
     pub bad_sequence: bool,
+    pub record_count: usize,
+}
+
+pub struct FastA {
+    pub missing_header_character: bool,
+    pub valid_sequence: bool,
+    pub record_count: usize,
+    pub max_header_length: usize,
+    pub valid_seq_id: bool,
+    pub duplicate_header: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -26,7 +36,7 @@ enum FastqState {
     Header,
     Sequence,
     Separator,
-    Quality
+    Quality,
 }
 
 impl FastqState {
@@ -35,9 +45,15 @@ impl FastqState {
             FastqState::Header => FastqState::Sequence,
             FastqState::Sequence => FastqState::Separator,
             FastqState::Separator => FastqState::Quality,
-            FastqState::Quality => FastqState::Header
+            FastqState::Quality => FastqState::Header,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum FastaState {
+    Header,
+    Sequence,
 }
 
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
@@ -50,24 +66,28 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
     let mut is_ascii: bool = true;
     let mut contains_offensive_bytes: bool = false;
     let mut line_count: usize = 0usize;
-    let mut max_header_len: usize = 0usize;
     let mut header_len: usize = 0usize;
-    let mut in_header: bool = false;
     let mut in_seq_id: bool = false;
-    let mut malformed_seq_id: bool = false;
-    let mut malformed_sequence: bool = false;
     let mut empty_record: bool = false;
-    let mut record_count: usize = 0;
     let mut fastq_record = FastQ {
         missing_header_character: false,
         missing_delimiter: false,
         bad_sequence: false,
+        record_count: 0,
+    };
+    let mut fasta_record = FastA {
+        missing_header_character: false,
+        valid_sequence: true,
+        record_count: 0,
+        max_header_length: 0,
+        valid_seq_id: true,
+        duplicate_header: false,
     };
     let mut record_set = HashSet::new();
-    let mut duplicate_header: bool = false;
     let mut sequence_length: usize = 0;
     let mut quality_length: usize = 0;
     let mut fastq_state = FastqState::Header;
+    let mut fasta_state = FastaState::Header;
     let mut line_start: bool = true;
 
     for byte in contents.iter() {
@@ -86,17 +106,17 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         // count newlines
         if *byte == 0x0A {
             line_count += 1;
-            if in_header {
+
+            // Check for duplicate FASTA headers
+            if pipeline == "fasta" && fasta_state == FastaState::Header {
                 let record = &contents[((i - 1) - header_len)..(i - 1)];
-                if record_set.insert(record) {
-                    // New record
-                } else if !duplicate_header {
-                    duplicate_header = true;
-                    println!("- duplicate headers")
+
+                if !record_set.insert(record) {
+                    fasta_record.duplicate_header = true;
+                    println!("- contains duplicate header\n")
                 }
             }
-            header_len = 0;
-            in_header = false;
+
             in_seq_id = false;
 
             if emptyline && !emptyline_check {
@@ -116,7 +136,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             // Note: this sequence occurs at every newline
             if pipeline == "fastq" {
                 if fastq_state == FastqState::Quality {
-                    record_count += 1;
+                    fastq_record.record_count += 1;
 
                     if sequence_length != quality_length {
                         println!("- record and sequence lengths differ")
@@ -126,6 +146,18 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 }
 
                 fastq_state = fastq_state.next();
+                line_start = true;
+            } else if pipeline == "fasta" {
+                // Increment max header length if current header is larger
+                if fasta_state == FastaState::Header && header_len > fasta_record.max_header_length
+                {
+                    fasta_record.max_header_length = header_len;
+                }
+                // Toggle to sequence state if last line was a header
+                if fasta_state == FastaState::Header {
+                    fasta_state = FastaState::Sequence;
+                }
+                header_len = 0;
                 line_start = true;
             }
         } else {
@@ -146,14 +178,16 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         sequence_length += 1;
 
                         if !is_iupac_byte(*byte) && !fastq_record.bad_sequence {
-                            println!("- sequence line contains invalid characters. \
-                            Only IUPAC nucleotide symbols are allowed");
+                            println!(
+                                "- sequence line contains invalid characters. \
+                            Only IUPAC nucleotide symbols are allowed"
+                            );
                             fastq_record.bad_sequence = true;
                         }
                     }
 
                     FastqState::Separator => {
-                        if line_start && *byte !=b'+' && !fastq_record.missing_delimiter {
+                        if line_start && *byte != b'+' && !fastq_record.missing_delimiter {
                             println! {"- sequence line does not start with '+'"};
                             fastq_record.missing_delimiter = true;
                         }
@@ -166,56 +200,61 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             }
 
             if pipeline == "fasta" {
-                if in_header {
-                    header_len += 1;
-
-                    // Check for empty FastA records
-                    if header_len == 1 {
-                        if !empty_record && i > 2 && contents[i - 2] == b'>' {
-                            empty_record = true;
-                        }
-                    }
-
-                    if (*byte == b'>' && i == 1)
-                        || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
-                    {
-                        record_count += 1;
-                    }
-
-                    if *byte == b' ' {
-                        in_seq_id = false;
-                    }
-
-                    if header_len > max_header_len {
-                        max_header_len = header_len;
-                    }
-
-                    // The SeqID can only include letters, digits, hyphens (-),
-                    // underscores (_), periods (.), colons (:), asterisks (*),
-                    // and number signs (#)
-                    if in_seq_id
-                        && (byte.is_ascii_alphanumeric()
-                            || matches!(byte, b'-' | b'_' | b'.' | b':' | b'*' | b'#'))
-                    {
-                        // Valid chars
-                    } else if !malformed_seq_id && in_seq_id {
-                        malformed_seq_id = true;
-                        println! {"- seqID contains invalid characters.\n\t\
-                        Only letters, digits, hyphens (-), underscores (_), periods (.),\
-                        colons (:), asterisks (*), and number signs (#) are allowed"}
-                    }
-                } else if *byte == b'>' {
-                    in_header = true;
+                if fasta_state == FastaState::Sequence && line_start && *byte == b'>' {
+                    fasta_state = FastaState::Header;
+                    header_len = 0;
                     in_seq_id = true;
-                    record_count += 1;
-                } else {
-                    if !is_iupac_byte(*byte) {
-                        if !malformed_sequence {
-                            println! {"- sequence contains invalid characters. \
-                            Only IUPAC nucleotide symbols are allowed"};
+                }
+
+                match fasta_state {
+                    FastaState::Header => {
+                        header_len += 1;
+
+                        // Check for empty FastA records
+                        if header_len == 1 {
+                            if !empty_record && i > 2 && contents[i - 2] == b'>' {
+                                empty_record = true;
+                            }
                         }
 
-                        malformed_sequence = true;
+                        if (*byte == b'>' && i == 1)
+                            || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
+                        {
+                            fasta_record.record_count += 1;
+                        } else if *byte != b'>' && i == 1 {
+                            fasta_record.missing_header_character = true;
+                        }
+
+                        if *byte == b' ' {
+                            in_seq_id = false;
+                        }
+
+                        // The SeqID can only include letters, digits, hyphens (-),
+                        // underscores (_), periods (.), colons (:), asterisks (*),
+                        // and number signs (#)
+                        if in_seq_id
+                            && (byte.is_ascii_alphanumeric()
+                                || matches!(byte, b'-' | b'_' | b'.' | b':' | b'*' | b'#'))
+                        {
+                            // Valid chars
+                        } else if fasta_record.valid_seq_id && in_seq_id {
+                            fasta_record.valid_seq_id = false;
+                            println! {"- seqID contains invalid characters.\n\t\
+                            Only letters, digits, hyphens (-), underscores (_), periods (.),\
+                            colons (:), asterisks (*), and number signs (#) are allowed"}
+                        }
+                    }
+
+                    FastaState::Sequence => {
+                        sequence_length += 1;
+
+                        if !is_iupac_byte(*byte) {
+                            if fasta_record.valid_sequence {
+                                println! {"- sequence contains invalid characters. \
+                                Only IUPAC nucleotide symbols are allowed"};
+                            }
+                            fasta_record.valid_sequence = false;
+                        }
                     }
                 }
             }
@@ -226,21 +265,25 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         }
     }
 
-    if sequence_length != quality_length {
-        println!("- Sequence and quality line lengths do not match");
-    }
+    if pipeline == "fastq" {
+        if sequence_length != quality_length {
+            println!("- Sequence and quality line lengths do not match");
+        }
 
-    if record_count == 0 {
-        println!("- Zero records found");
-    } else if record_count % 2 != 0 {
-        println!("- Odd number of records: {}", record_count);
-    } else {
-        println!("- Even number of records: {}", record_count);
-    }
-
-    if max_header_len > 25 {
-        println! {"- header length exceeds 25 characters.\n\t\
-        Longest header is {max_header_len} characters long"}
+        if fastq_record.record_count == 0 {
+            println!("- Zero records found");
+        } else if fastq_record.record_count % 2 != 0 {
+            println!("- Odd number of records: {}", fastq_record.record_count);
+        } else {
+            println!("- Even number of records: {}", fastq_record.record_count);
+        }
+    } else if pipeline == "fasta" {
+        if fasta_record.max_header_length > 25 {
+            let header_len = fasta_record.max_header_length.to_string();
+            println! {"- header length exceeds 25 characters.\n\t\
+                Longest header is {header_len} characters long"
+            }
+        }
     }
 
     ByteWiseCheck {
