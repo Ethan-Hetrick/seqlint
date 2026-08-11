@@ -74,14 +74,12 @@ fn main() -> io::Result<()> {
 
         match args.pipeline {
             Pipeline::Fasta => {
-                println!("\nFASTA checks:");
+                let fasta_quick = fasta::FastaQuick::new(&contents, &path);
+                fasta_quick.report();
 
-                if fasta_results.unwrap().empty_record {
-                    println!("- contains empty record");
+                if let Some(fa) = fasta_results {
+                    fa.report();
                 }
-
-                let fasta = fasta::FastaQuick::new(&contents, &path);
-                fasta.report();
             }
             Pipeline::Fastq => {
                 let fastq_quick = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);

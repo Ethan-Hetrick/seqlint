@@ -9,7 +9,6 @@ pub struct ByteWiseCheck {
     pub is_ascii: bool,
     pub contains_offensive_bytes: bool,
     pub trailing_whitespace: bool,
-    pub long_lines: bool,
     pub empty_line: bool,
     pub line_count: usize,
 }
@@ -25,9 +24,6 @@ impl ByteWiseCheck {
         }
         if self.trailing_whitespace {
             println!("- contains trailing whitespace");
-        }
-        if self.long_lines {
-            println!("- contains lines longer than 80 characters");
         }
         if self.empty_line {
             println!("- contains empty lines");
@@ -45,7 +41,7 @@ pub struct FastQ {
 
 impl FastQ {
     pub fn report(&self) {
-        println!("Counted {} records", self.record_count);
+        println!("- Counted {} records", self.record_count);
         if self.missing_header_character {
             println! {"- header line does not start with '@'"};
         }
@@ -76,6 +72,27 @@ pub struct FastA {
     pub valid_seq_id: bool,
     pub duplicate_header: bool,
     pub empty_record: bool,
+    pub long_sequence: bool,
+}
+
+impl FastA {
+    pub fn report(&self) {
+        println!("\nFASTA checks:");
+
+        if self.empty_record {
+            println!("- contains empty record");
+        }
+
+        if self.long_sequence {
+            println!("- sequence line is longer than 80 characters")
+        }
+
+        if !self.valid_seq_id {
+            println!{"- seqID contains invalid characters.\n\t\
+                        Only letters, digits, hyphens (-), underscores (_), periods (.),\
+                        colons (:), asterisks (*), and number signs (#) are allowed" }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -106,9 +123,8 @@ enum FastaState {
 pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
     (ByteWiseCheck, Option<FastQ>, Option<FastA>)
 {
-    let mut counter: u32 = 0;
+    let mut line_length: usize = 0;
     let mut i: usize = 0;
-    let mut long: bool = false;
     let mut trailing_whitespace: bool = false;
     let mut empty_line: bool = true;
     let mut is_ascii: bool = true;
@@ -131,6 +147,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
         valid_seq_id: true,
         duplicate_header: false,
         empty_record: false,
+        long_sequence: false,
     };
     let mut record_set = HashSet::new();
     let mut sequence_length: usize = 0;
@@ -170,7 +187,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
             }
 
             in_seq_id = false;
-            counter = 0;
+            line_length = 0;
 
             // check: trailing whitespace
             if i > 2 && is_whitespace(contents[i - 2]) && !trailing_whitespace {
@@ -207,15 +224,12 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
                 line_start = true;
             }
         } else {
-            counter += 1;
-            if counter > 80 && !long {
-                long = true;
-            }
+            line_length += 1;
 
             if pipeline == "fastq" {
                 match fastq_state {
                     FastqState::Header => {
-                        if line_start && *byte != b'@' && !fastq_record.missing_header_character {
+                        if line_start && *byte != b'@' {
                             fastq_record.missing_header_character = true;
                         }
                     }
@@ -246,6 +260,10 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
                     in_seq_id = true;
                 }
 
+                if fasta_state == FastaState::Sequence && line_length > 80 {
+                    fasta_record.long_sequence = true;
+                }
+
                 match fasta_state {
                     FastaState::Header => {
                         header_len += 1;
@@ -261,6 +279,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
                             || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
                         {
                             fasta_record.record_count += 1;
+                            in_seq_id = true; 
                         } else if *byte != b'>' && i == 1 {
                             fasta_record.missing_header_character = true;
                         }
@@ -273,15 +292,11 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
                         // underscores (_), periods (.), colons (:), asterisks (*),
                         // and number signs (#)
                         if in_seq_id
-                            && (byte.is_ascii_alphanumeric()
+                            && header_len > 1
+                            && !(byte.is_ascii_alphanumeric()
                                 || matches!(byte, b'-' | b'_' | b'.' | b':' | b'*' | b'#'))
                         {
-                            // Valid chars
-                        } else if fasta_record.valid_seq_id && in_seq_id {
                             fasta_record.valid_seq_id = false;
-                            println! {"- seqID contains invalid characters.\n\t\
-                            Only letters, digits, hyphens (-), underscores (_), periods (.),\
-                            colons (:), asterisks (*), and number signs (#) are allowed"}
                         }
                     }
 
@@ -302,6 +317,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
             if !is_whitespace(*byte) {
                 empty_line = false;
             }
+            line_start = false;
         }
     }
 
@@ -330,7 +346,6 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
         is_ascii,
         contains_offensive_bytes,
         trailing_whitespace,
-        long_lines: long,
         empty_line,
         line_count,
     };

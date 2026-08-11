@@ -18,6 +18,7 @@ impl FastaQuick {
     }
 
     pub fn report(&self) {
+        println!("\nFASTA checks (quick):");
         if self.valid_start {
                     println!("- starts with '>'")
                 }
