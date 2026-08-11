@@ -7,7 +7,7 @@ const UTF32_BE_BOM: [u8; 4] = [0x00, 0x00, 0xFE, 0xFF];
 #[derive(Debug)]
 pub struct Header {
     utf_bom: bool,
-    gzip_magic: bool,
+    pub gzip_magic: bool,
     deflate: bool,
     cram_magic: bool,
 }
@@ -34,20 +34,19 @@ impl Header {
         contents.starts_with(&[67, 82, 65, 77])
     }
 
-    fn bgzf_header(contents: &Vec<u8>) {
-        // 13th and 14th byte check
+    // fn bgzf_header(contents: &Vec<u8>) {
+    //     // 13th and 14th byte check
 
-        match &contents[12..14] {
-            b"BC" => println!("- contains BGZF header (subfield ID 'BC')"),
-            b"EC" => println!("- contains BGZF header (subfield ID 'EC')"),
-            b"DC" => println!("- contains BGZF header (subfield ID 'DC')"),
-            _ => println!("- does not contain BGZF header"),
-        }
-    }
+    //     match &contents[12..14] {
+    //         b"BC" => println!("- contains BGZF header (subfield ID 'BC')"),
+    //         b"EC" => println!("- contains BGZF header (subfield ID 'EC')"),
+    //         b"DC" => println!("- contains BGZF header (subfield ID 'DC')"),
+    //         _ => println!("- does not contain BGZF header"),
+    //     }
+    // }
 
-    pub fn new(contents: &Vec<u8>, path: &String) -> bool {
+    pub fn new(contents: &Vec<u8>) -> Header {
         // check: headers
-        println!("\nHeader checks:");
         let header = Header {
             utf_bom: Header::utf_bom(&contents),
             gzip_magic: Header::gzip_magic(&contents),
@@ -55,27 +54,29 @@ impl Header {
             cram_magic: Header::cram_magic(&contents),
         };
 
+        header
+    }
+
+    pub fn report(&self) {
+        println!("\nFile header checks:");
         // Error if BOM exists
         assert!(
-            !header.utf_bom,
-            "\n\nERROR: file contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom {path}\n"
+            !self.utf_bom,
+            "\n\nERROR: file contains UTF BOM."
         );
 
         // Print if file is gzipped
-        if header.gzip_magic {
+        if self.gzip_magic {
             println!("- gzip-compressed");
-            Header::bgzf_header(&contents);
         }
 
-        if header.deflate {
-            println! {"- compressed with DEFLATE"}
+        if self.deflate {
+            println! {"- compressed with DEFLATE"};
         }
 
-        if header.cram_magic {
-            println! {"- is a CRAM file"}
+        if self.cram_magic {
+            println! {"- is a CRAM file"};
         }
-
-        header.gzip_magic
     }
 }
 
@@ -105,5 +106,15 @@ impl Footer {
         };
 
         footer
+    }
+
+    pub fn report(&self) {
+        println!("\nFooter checks:");
+        if self.bgzf_eof {
+            println!("- contains valid BGZF EOF bytes");
+        }
+        if self.newline {
+            println!("- contains final newline");
+        }
     }
 }

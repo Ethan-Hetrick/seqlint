@@ -11,8 +11,10 @@ This is the first Rust project I have attempted manually (minimal use of gen AI)
 ## Usage
 
 ```
-seqlint <fasta,fastq> <file1 file2 file3 ...>
+seqlint --pipine|-p <fasta,fastq> <file1 file2 file3 ...>
 ```
+
+The `--pipeline` param is optional.
 
 ## Features
 
@@ -113,10 +115,17 @@ seqlint <fasta,fastq> <file1 file2 file3 ...>
 
 **User experience**
 
+- [x] CLI
 - [ ] Separate errors, warnings, compatibility, and informational messages
 - [ ] Tabularized output ([tabled](https://docs.rs/crate/tabled/latest))
+
+**QoL**
+
+- [x] CLI skips duplicate input files by their canonical path
 
 ## Resources
 
 - [MAQ FASTQ specification](https://maq.sourceforge.net/fastq.shtml)
 - [UCSC Genome Browser FAQ: File Formats](https://genome.ucsc.edu/FAQ/FAQformat.html)
+- [NCBI FASTA format specification](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
+- [NCBI FASTQ format specification](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)

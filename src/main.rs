@@ -1,7 +1,8 @@
-const FILE_TYPES: [&str; 2] = ["fasta", "fastq"];
-
+use clap::{Parser, ValueEnum};
 use std::fs;
-use std::{env, io};
+use std::io;
+use std::path::PathBuf;
+use std::collections::HashSet;
 
 mod fasta;
 mod fastq;
@@ -11,105 +12,106 @@ mod scan;
 
 use margins::{Footer, Header};
 
-// FASTA reference: https://www.ncbi.nlm.nih.gov/genbank/fastaformat/
-// FASTQ reference: https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files
+#[derive(Parser, Debug)]
+#[command(
+    version,
+    about = "Linter for biological sequence data files",
+    arg_required_else_help = true)]
+struct Args {
+    #[arg(short, long, value_enum)]
+    pipeline: Option<Pipeline>,
+    files: Vec<PathBuf>,
+}
+
+#[derive(Clone, Debug, ValueEnum)]
+#[value(rename_all = "lowercase")]
+enum Pipeline {
+    Fasta,
+    Fastq,
+}
 
 fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
+    let mut seen_paths = HashSet::new();
 
-    let pipeline = args.get(1).expect("ERROR: Must provide at least one arg");
-    assert!(
-        FILE_TYPES.contains(&pipeline.as_str()),
-        "\nERROR: First arg must be 'fasta' or 'fastq'"
-    );
+    let pipeline_selection: Option<&str> = args.pipeline
+        .as_ref()
+        .map(|p| match p {
+            Pipeline::Fasta => "fasta",
+            Pipeline::Fastq => "fastq"
+        });
 
-    for path in args.iter().skip(2) {
+    for path_buf in &args.files {
+        let canonical_path = fs::canonicalize(&path_buf)?;
+        let path = canonical_path.to_string_lossy().into_owned();
+
+        let equal_str = "=".repeat(path.len());
+
+        eprintln!(
+            "{equal_str}\nseqlint results for:\n\n{path}"
+        );
+
+        // Skip duplicate user-provided paths
+        if !seen_paths.insert(canonical_path.clone()) {
+            eprintln!("\nWARNING: skipping {path} as it was provided more than once\n");
+            continue
+        }
+
         // Run basic file integrity checks
-        let size: usize = integrity::integrity_checks(&path);
-
-        let abs_path = fs::canonicalize(&path)?.to_string_lossy().into_owned();
-
-        // print bytes
-        println!("\n{abs_path} is {size} bytes");
+        match integrity::integrity_checks(&path) {
+            Ok(()) => {}
+            Err(message) => {
+                eprintln!("\nERROR: {path} {message}, skipping file checks..");
+                continue
+            }
+        }
 
         // Load file
+        // TODO: catch errors and print in nicer format
         let contents: Vec<u8> = fs::read(&path)?;
+        let size: usize = contents.len();
 
         // Check headers
-        let is_gzip: bool = Header::new(&contents, &path);
+        let header_results = Header::new(&contents);
+        header_results.report();
 
-        let bytewise_checks_input: Vec<u8> = if is_gzip {
+        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic {
             scan::decode_reader(&contents).unwrap()
         } else {
             contents.clone()
         };
 
-        assert!(bytewise_checks_input.len() > 0, "\n- file contents empty\n");
+        if bytewise_checks_input.is_empty() {
+            println!("\nWARNING: file contents empty, skipping subsequent checks..\n");
+            continue
+        }
 
         // Footer
-        println!("\nFooter checks:");
-        let footer = Footer::new(&contents, &size);
-        if footer.bgzf_eof {
-            println!("- contains valid BGZF EOF bytes");
-        }
-        if footer.newline {
-            println!("- contains final newline");
-        }
+        let footer_results = Footer::new(&contents, &size);
+        footer_results.report();
 
         // Byte-wise checks:
-        println!("\nByte-wise checks:");
-        let bytewise_results = scan::bytewise_checks(&bytewise_checks_input, &pipeline.to_string());
-        if !bytewise_results.is_ascii {
-            println!("- contains non-ASCII bytes");
-        }
-        if bytewise_results.contains_offensive_bytes {
-            println!("- contains unsupported ASCII bytes");
-        }
-        if bytewise_results.trailing_whitespace {
-            println!("- contains trailing whitespace");
-        }
-        if bytewise_results.long_lines {
-            println!("- contains lines longer than 80 characters");
-        }
-        if bytewise_results.empty_lines {
-            println!("- contains empty lines");
-        }
+        let (bytewise_results, fastq_results, fasta_results) = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection.unwrap_or(""));
+        bytewise_results.report();
 
-        if *&pipeline.as_str() == "fasta" {
-            println!("\nFastA file checks:");
+        match args.pipeline {
+            Some(Pipeline::Fasta) => {
+                let fasta_quick = fasta::FastaQuick::new(&contents, &path);
+                fasta_quick.report();
 
-            if bytewise_results.empty_record {
-                println!("- contains empty record");
+                if let Some(fa) = fasta_results {
+                    fa.report();
+                }
             }
+            Some(Pipeline::Fastq) => {
+                let fastq_quick = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
+                fastq_quick.report();
 
-            let fasta = fasta::Fasta::new(&contents, &path);
-            if fasta.valid_start {
-                println!("- starts with '>'")
+                if let Some(fq) = fastq_results {
+                    fq.report();
+                }
             }
-            if fasta.valid_extension {
-                println!("- has valid extension")
-            }
-        } else if *&pipeline.as_str() == "fastq" {
-            println!("\nFastQ file checks:");
-            let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
-
-            if !fastq.valid_extension {
-                println!("- does not have recognized extension")
-            }
-
-            if !fastq.valid_start {
-                println!("- fastq does not start with '@'")
-            }
-
-            if !fastq.four_line_entries {
-                println!("- does not have four-line entries")
-            }
-
-            if fastq.paired_end_r1 {
-                println!("- paired-end R1 file")
-            } else if fastq.paired_end_r2 {
-                println!("- paired-end R2 file")
-            }
+            None => {}
         }
     }
 
