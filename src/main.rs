@@ -45,6 +45,12 @@ fn main() -> io::Result<()> {
         let canonical_path = fs::canonicalize(&path_buf)?;
         let path = canonical_path.to_string_lossy().into_owned();
 
+        let equal_str = "=".repeat(path.len());
+
+        eprintln!(
+            "{equal_str}\n\nseqlint results:\n\n{path}\n\n{equal_str}\n"
+        );
+
         // Skip duplicate user-provided paths
         if !seen_paths.insert(canonical_path.clone()) {
             eprintln!("\nWARNING: skipping {path} as it was provided more than once\n");
@@ -61,7 +67,7 @@ fn main() -> io::Result<()> {
         }
 
         // Load file
-        // RTODO: catch errors and print in nicer format
+        // TODO: catch errors and print in nicer format
         let contents: Vec<u8> = fs::read(&path)?;
         let size: usize = contents.len();
 
