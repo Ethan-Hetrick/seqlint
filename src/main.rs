@@ -48,7 +48,7 @@ fn main() -> io::Result<()> {
         let equal_str = "=".repeat(path.len());
 
         eprintln!(
-            "{equal_str}\n\nseqlint results:\n\n{path}\n\n{equal_str}\n"
+            "{equal_str}\nseqlint results for:\n\n{path}"
         );
 
         // Skip duplicate user-provided paths

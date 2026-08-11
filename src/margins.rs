@@ -62,7 +62,7 @@ impl Header {
         // Error if BOM exists
         assert!(
             !self.utf_bom,
-            "\n\nERROR: file contains UTF BOM. Remove it using:\n\n\t\tdos2unix --remove-bom <file>\n"
+            "\n\nERROR: file contains UTF BOM."
         );
 
         // Print if file is gzipped
