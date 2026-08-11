@@ -10,9 +10,29 @@ pub struct ByteWiseCheck {
     pub contains_offensive_bytes: bool,
     pub trailing_whitespace: bool,
     pub long_lines: bool,
-    pub empty_lines: bool,
+    pub empty_line: bool,
     pub line_count: usize,
-    pub empty_record: bool,
+}
+
+impl ByteWiseCheck {
+    pub fn report(&self) {
+        println!("Scan results:");
+        if !self.is_ascii {
+            println!("- contains non-ASCII bytes");
+        }
+        if self.contains_offensive_bytes {
+            println!("- contains unsupported ASCII bytes");
+        }
+        if self.trailing_whitespace {
+            println!("- contains trailing whitespace");
+        }
+        if self.long_lines {
+            println!("- contains lines longer than 80 characters");
+        }
+        if self.empty_line {
+            println!("- contains empty lines");
+        }
+    }
 }
 
 pub struct FastQ {
@@ -20,6 +40,32 @@ pub struct FastQ {
     pub missing_delimiter: bool,
     pub bad_sequence: bool,
     pub record_count: usize,
+    pub seq_qual_mismatch: bool,
+}
+
+impl FastQ {
+    pub fn report(&self) {
+        println!("Counted {} records", self.record_count);
+        if self.missing_header_character {
+            println! {"- header line does not start with '@'"};
+        }
+
+        if self.missing_delimiter {
+            println! {"- sequence line does not start with '+'"};
+        }
+
+        if self.bad_sequence {
+            println!(
+                                "- sequence line contains invalid characters. \
+                            Only IUPAC nucleotide symbols are allowed"
+                            );
+        }
+
+        if self.seq_qual_mismatch {
+            println!("- record and sequence lengths differ");
+        }
+
+    }
 }
 
 pub struct FastA {
@@ -29,6 +75,7 @@ pub struct FastA {
     pub max_header_length: usize,
     pub valid_seq_id: bool,
     pub duplicate_header: bool,
+    pub empty_record: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,24 +103,25 @@ enum FastaState {
     Sequence,
 }
 
-pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
+pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
+    (ByteWiseCheck, Option<FastQ>, Option<FastA>)
+{
     let mut counter: u32 = 0;
     let mut i: usize = 0;
     let mut long: bool = false;
-    let mut trailing: bool = false;
-    let mut emptyline: bool = true;
-    let mut emptyline_check: bool = false;
+    let mut trailing_whitespace: bool = false;
+    let mut empty_line: bool = true;
     let mut is_ascii: bool = true;
     let mut contains_offensive_bytes: bool = false;
     let mut line_count: usize = 0usize;
     let mut header_len: usize = 0usize;
     let mut in_seq_id: bool = false;
-    let mut empty_record: bool = false;
     let mut fastq_record = FastQ {
         missing_header_character: false,
         missing_delimiter: false,
         bad_sequence: false,
         record_count: 0,
+        seq_qual_mismatch: false,
     };
     let mut fasta_record = FastA {
         missing_header_character: false,
@@ -82,6 +130,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         max_header_length: 0,
         valid_seq_id: true,
         duplicate_header: false,
+        empty_record: false,
     };
     let mut record_set = HashSet::new();
     let mut sequence_length: usize = 0;
@@ -104,8 +153,12 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         }
 
         // count newlines
-        if *byte == 0x0A {
+        if *byte == b'\n' {
             line_count += 1;
+
+            if i > 2 && contents[&i - 2] == b'\n' {
+                empty_line = true;
+            }
 
             // Check for duplicate FASTA headers
             if pipeline == "fasta" && fasta_state == FastaState::Header {
@@ -113,22 +166,15 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
                 if !record_set.insert(record) {
                     fasta_record.duplicate_header = true;
-                    println!("- contains duplicate header\n")
                 }
             }
 
             in_seq_id = false;
-
-            if emptyline && !emptyline_check {
-                emptyline_check = true;
-            } else {
-                emptyline = true;
-            }
             counter = 0;
 
             // check: trailing whitespace
-            if i > 2 && is_whitespace(contents[i - 2]) && !trailing {
-                trailing = true;
+            if i > 2 && is_whitespace(contents[i - 2]) && !trailing_whitespace {
+                trailing_whitespace = true;
             }
 
             line_start = false;
@@ -139,7 +185,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                     fastq_record.record_count += 1;
 
                     if sequence_length != quality_length {
-                        println!("- record and sequence lengths differ")
+                        fastq_record.seq_qual_mismatch = true;
                     }
                     sequence_length = 0;
                     quality_length = 0;
@@ -170,7 +216,6 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                 match fastq_state {
                     FastqState::Header => {
                         if line_start && *byte != b'@' && !fastq_record.missing_header_character {
-                            println! {"- header line does not start with '@'"};
                             fastq_record.missing_header_character = true;
                         }
                     }
@@ -178,17 +223,12 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
                         sequence_length += 1;
 
                         if !is_iupac_byte(*byte) && !fastq_record.bad_sequence {
-                            println!(
-                                "- sequence line contains invalid characters. \
-                            Only IUPAC nucleotide symbols are allowed"
-                            );
                             fastq_record.bad_sequence = true;
                         }
                     }
 
                     FastqState::Separator => {
                         if line_start && *byte != b'+' && !fastq_record.missing_delimiter {
-                            println! {"- sequence line does not start with '+'"};
                             fastq_record.missing_delimiter = true;
                         }
                     }
@@ -212,8 +252,8 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
 
                         // Check for empty FastA records
                         if header_len == 1 {
-                            if !empty_record && i > 2 && contents[i - 2] == b'>' {
-                                empty_record = true;
+                            if contents[i - 2] == b'>' {
+                                fasta_record.empty_record = true;
                             }
                         }
 
@@ -260,7 +300,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
             }
 
             if !is_whitespace(*byte) {
-                emptyline = false;
+                empty_line = false;
             }
         }
     }
@@ -286,14 +326,19 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) -> ByteWiseCheck {
         }
     }
 
-    ByteWiseCheck {
-        is_ascii: is_ascii,
-        contains_offensive_bytes: contains_offensive_bytes,
-        trailing_whitespace: trailing,
+    let bytewise_results = ByteWiseCheck {
+        is_ascii,
+        contains_offensive_bytes,
+        trailing_whitespace,
         long_lines: long,
-        empty_lines: emptyline_check,
-        line_count: line_count,
-        empty_record: empty_record,
+        empty_line,
+        line_count,
+    };
+
+    match pipeline {
+        "fastq" => (bytewise_results, Some(fastq_record), None),
+        "fasta" => (bytewise_results, None, Some(fasta_record)),
+        _ => (bytewise_results, None, None),
     }
 }
 

@@ -48,6 +48,7 @@ impl Header {
     pub fn new(contents: &Vec<u8>, path: &String) -> bool {
         // check: headers
         println!("\nHeader checks:");
+
         let header = Header {
             utf_bom: Header::utf_bom(&contents),
             gzip_magic: Header::gzip_magic(&contents),

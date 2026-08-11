@@ -69,29 +69,14 @@ fn main() -> io::Result<()> {
         }
 
         // Byte-wise checks:
-        println!("\nByte-wise checks:");
-        let bytewise_results = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection);
-        if !bytewise_results.is_ascii {
-            println!("- contains non-ASCII bytes");
-        }
-        if bytewise_results.contains_offensive_bytes {
-            println!("- contains unsupported ASCII bytes");
-        }
-        if bytewise_results.trailing_whitespace {
-            println!("- contains trailing whitespace");
-        }
-        if bytewise_results.long_lines {
-            println!("- contains lines longer than 80 characters");
-        }
-        if bytewise_results.empty_lines {
-            println!("- contains empty lines");
-        }
+        let (bytewise_results, fastq_results, fasta_results) = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection);
+        bytewise_results.report();
 
         match args.pipeline {
             Pipeline::Fasta => {
-                println!("\nFastA file checks:");
+                println!("FASTA checks:");
 
-                if bytewise_results.empty_record {
+                if fasta_results.unwrap().empty_record {
                     println!("- contains empty record");
                 }
 
@@ -104,8 +89,7 @@ fn main() -> io::Result<()> {
                 }
             }
             Pipeline::Fastq => {
-                println!("\nFastQ file checks:");
-                let fastq = fastq::Fastq::new(&contents, &bytewise_results.line_count, &path);
+                let fastq = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
 
                 if !fastq.valid_extension {
                     println!("- does not have recognized extension")
