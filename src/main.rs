@@ -42,7 +42,8 @@ fn main() -> io::Result<()> {
         });
 
     for path_buf in &args.files {
-        let canonical_path = fs::canonicalize(&path_buf)?;
+        let canonical_path = fs::canonicalize(&path_buf)
+            .map_err(|e| io::Error::new(e.kind(), format!("Path: '{}' {e}", path_buf.display())))?;
         let path = canonical_path.to_string_lossy().into_owned();
 
         let equal_str = "=".repeat(path.len());
