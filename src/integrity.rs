@@ -1,26 +1,32 @@
 use std::fs;
 
-pub fn integrity_checks(path: &String) -> usize {
-    // check: does exist
-    assert!(
-        fs::exists(&path).unwrap(),
-        "\n\tERROR: Unable to access file {path}\n"
-    );
-    let metadata = fs::metadata(&path).expect("REASON");
+enum FailureStates {
+    NotReadable,
+    IsDirectory,
+    TooSmall,
+}
 
-    // check: is not dir
-    // TODO: better error message for no read access
-    assert!(!metadata.is_dir(), "\nERROR: {path} is a directory\n");
+impl FailureStates {
+    fn failure_message (&self) -> &'static str {
+        match self {
+        FailureStates::NotReadable => "does not exist or is not readable",
+        FailureStates::IsDirectory => "is a directory",
+        FailureStates::TooSmall => "< 3 bytes"
+        }
+    }
+}
 
-    // check: is not empty
-    let size = metadata.len() as usize;
-    assert!(*&size > 0, "\nERROR: {path} is empty\n");
+pub fn integrity_checks(path: &String) -> Result<(), &'static str> {
+    let metadata = fs::metadata(path)
+        .map_err(|_| FailureStates::NotReadable.failure_message())?;
 
-    // check: has more than 3 bytes
-    assert!(
-        *&size >= 4,
-        "\nERROR: {path} < 3 bytes, unable to process\n"
-    );
+    if !metadata.is_file() {
+        return Err(FailureStates::IsDirectory.failure_message())?;
+    }
 
-    size
+    if metadata.len() < 4 {
+        return Err(FailureStates::TooSmall.failure_message());
+    }
+
+    Ok(())
 }

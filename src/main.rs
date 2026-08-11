@@ -41,18 +41,23 @@ fn main() -> io::Result<()> {
 
         // Skip duplicate user-provided paths
         if !seen_paths.insert(canonical_path.clone()) {
-            println!("\nWARNING: skipping {path} as it was provided more than once\n");
+            eprintln!("\nWARNING: skipping {path} as it was provided more than once\n");
             continue
         }
 
         // Run basic file integrity checks
-        let size: usize = integrity::integrity_checks(&path);
-
-        // print bytes
-        println!("\n{path} is {size} bytes");
+        match integrity::integrity_checks(&path) {
+            Ok(()) => {}
+            Err(message) => {
+                eprintln!("\nERROR: {path} {message}, skipping file checks..");
+                continue
+            }
+        }
 
         // Load file
+        // RTODO: catch errors and print in nicer format
         let contents: Vec<u8> = fs::read(&path)?;
+        let size: usize = contents.len();
 
         // Check headers
         let header_results = Header::new(&contents);
@@ -64,7 +69,10 @@ fn main() -> io::Result<()> {
             contents.clone()
         };
 
-        assert!(bytewise_checks_input.len() > 0, "\n- file contents empty\n");
+        if bytewise_checks_input.is_empty() {
+            println!("\nWARNING: file contents empty, skipping subsequent checks..\n");
+            continue
+        }
 
         // Footer
         let footer_results = Footer::new(&contents, &size);
