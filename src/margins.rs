@@ -10,6 +10,7 @@ pub struct Header {
     pub gzip_magic: bool,
     deflate: bool,
     cram_magic: bool,
+    bgzf_subfield: Option<&'static str>,
 }
 
 impl Header {
@@ -21,7 +22,7 @@ impl Header {
             || contents.starts_with(&UTF32_BE_BOM)
     }
 
-    fn gzip_magic(contents: &Vec<u8>) -> bool {
+    pub fn gzip_magic(contents: &Vec<u8>) -> bool {
         contents.starts_with(&[31, 139])
     }
 
@@ -34,27 +35,31 @@ impl Header {
         contents.starts_with(&[67, 82, 65, 77])
     }
 
-    fn bgzf_header(contents: &Vec<u8>) {
+    fn bgzf_header(gzip_magic: bool, contents: &Vec<u8>) -> Option<&'static str> {
         // 13th and 14th byte check
+        if !gzip_magic {
+            return None
+        }
 
-        match &contents[12..14] {
-            b"BC" => println!("- contains BGZF header (subfield ID 'BC')"),
-            b"EC" => println!("- contains BGZF header (subfield ID 'EC')"),
-            b"DC" => println!("- contains BGZF header (subfield ID 'DC')"),
-            _ => println!(""),
+        match contents.get(12..14) {
+            Some(b"BC") => Some("BC"),
+            Some(b"DC") => Some("DC"),
+            Some(b"EC") => Some("EC"),
+            _ => None
         }
     }
 
     pub fn new(contents: &Vec<u8>) -> Header {
         // check: headers
+        let gzip_magic = Header::gzip_magic(&contents);
+
         let header = Header {
             utf_bom: Header::utf_bom(&contents),
-            gzip_magic: Header::gzip_magic(&contents),
+            gzip_magic,
             deflate: Header::is_deflate(&contents),
             cram_magic: Header::cram_magic(&contents),
+            bgzf_subfield: Header::bgzf_header(gzip_magic, &contents),
         };
-
-        Header::bgzf_header(&contents);
 
         header
     }
@@ -62,10 +67,9 @@ impl Header {
     pub fn report(&self) {
         println!("\nFile header checks:");
         // Error if BOM exists
-        assert!(
-            !self.utf_bom,
-            "\n\nERROR: file contains UTF BOM."
-        );
+        if self.utf_bom {
+            eprintln!("- WARNING!: contains UTF BOM");
+        }
 
         // Print if file is gzipped
         if self.gzip_magic {
@@ -78,6 +82,10 @@ impl Header {
 
         if self.cram_magic {
             println! {"- is a CRAM file"};
+        }
+
+        if let Some(subfield) = self.bgzf_subfield {
+            eprintln!("- contains BGZF subfield: {}", subfield)
         }
     }
 }

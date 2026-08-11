@@ -26,7 +26,6 @@ The `--pipeline` param is optional.
 - [x] File is not empty and has at least 4 bytes for processing
 - [x] Decompressed data is not empty
 - [x] Whitespace-only file detection
-- [x] Compression format complete-header and truncation check
 
 **Magic byte checks**
 

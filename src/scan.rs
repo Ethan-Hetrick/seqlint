@@ -173,6 +173,9 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
         if *byte == b'\n' {
             line_count += 1;
 
+            // TODO: also check if lines are all whitespace, not just two adjacent line endings
+            // delcare a var only_whitespace, make it true as base case, make it false upon valid char
+            // might replace the below line entirely.
             if i > 2 && contents[&i - 2] == b'\n' {
                 empty_line = true;
             }
@@ -314,9 +317,6 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
                 }
             }
 
-            if !is_whitespace(*byte) {
-                empty_line = false;
-            }
             line_start = false;
         }
     }
