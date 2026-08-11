@@ -13,9 +13,13 @@ mod scan;
 use margins::{Footer, Header};
 
 #[derive(Parser, Debug)]
-#[command(version, about = "Linter for biological sequence data files")]
+#[command(
+    version,
+    about = "Linter for biological sequence data files",
+    arg_required_else_help = true)]
 struct Args {
-    pipeline: Pipeline,
+    #[arg(short, long, value_enum)]
+    pipeline: Option<Pipeline>,
     files: Vec<PathBuf>,
 }
 
@@ -30,10 +34,12 @@ fn main() -> io::Result<()> {
     let args = Args::parse();
     let mut seen_paths = HashSet::new();
 
-    let pipeline_selection = match args.pipeline {
-        Pipeline::Fasta => "fasta".to_string(),
-        Pipeline::Fastq => "fastq".to_string(),
-    };
+    let pipeline_selection: Option<&str> = args.pipeline
+        .as_ref()
+        .map(|p| match p {
+            Pipeline::Fasta => "fasta",
+            Pipeline::Fastq => "fastq"
+        });
 
     for path_buf in &args.files {
         let canonical_path = fs::canonicalize(&path_buf)?;
@@ -79,11 +85,11 @@ fn main() -> io::Result<()> {
         footer_results.report();
 
         // Byte-wise checks:
-        let (bytewise_results, fastq_results, fasta_results) = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection);
+        let (bytewise_results, fastq_results, fasta_results) = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection.unwrap_or(""));
         bytewise_results.report();
 
         match args.pipeline {
-            Pipeline::Fasta => {
+            Some(Pipeline::Fasta) => {
                 let fasta_quick = fasta::FastaQuick::new(&contents, &path);
                 fasta_quick.report();
 
@@ -91,7 +97,7 @@ fn main() -> io::Result<()> {
                     fa.report();
                 }
             }
-            Pipeline::Fastq => {
+            Some(Pipeline::Fastq) => {
                 let fastq_quick = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
                 fastq_quick.report();
 
@@ -99,6 +105,7 @@ fn main() -> io::Result<()> {
                     fq.report();
                 }
             }
+            None => {}
         }
     }
 

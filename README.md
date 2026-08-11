@@ -11,8 +11,10 @@ This is the first Rust project I have attempted manually (minimal use of gen AI)
 ## Usage
 
 ```
-seqlint <fasta,fastq> <file1 file2 file3 ...>
+seqlint --pipine|-p <fasta,fastq> <file1 file2 file3 ...>
 ```
+
+The `--pipeline` param is optional.
 
 ## Features
 
