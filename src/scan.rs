@@ -16,7 +16,7 @@ pub struct ByteWiseCheck {
 
 impl ByteWiseCheck {
     pub fn report(&self) {
-        println!("Scan results:");
+        println!("\nScan results:");
         if !self.is_ascii {
             println!("- contains non-ASCII bytes");
         }
@@ -252,7 +252,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
 
                         // Check for empty FastA records
                         if header_len == 1 {
-                            if contents[i - 2] == b'>' {
+                            if i > 2 && contents[i - 2] == b'>' {
                                 fasta_record.empty_record = true;
                             }
                         }

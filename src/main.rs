@@ -74,39 +74,21 @@ fn main() -> io::Result<()> {
 
         match args.pipeline {
             Pipeline::Fasta => {
-                println!("FASTA checks:");
+                println!("\nFASTA checks:");
 
                 if fasta_results.unwrap().empty_record {
                     println!("- contains empty record");
                 }
 
-                let fasta = fasta::Fasta::new(&contents, &path);
-                if fasta.valid_start {
-                    println!("- starts with '>'")
-                }
-                if fasta.valid_extension {
-                    println!("- has valid extension")
-                }
+                let fasta = fasta::FastaQuick::new(&contents, &path);
+                fasta.report();
             }
             Pipeline::Fastq => {
-                let fastq = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
+                let fastq_quick = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
+                fastq_quick.report();
 
-                if !fastq.valid_extension {
-                    println!("- does not have recognized extension")
-                }
-
-                if !fastq.valid_start {
-                    println!("- fastq does not start with '@'")
-                }
-
-                if !fastq.four_line_entries {
-                    println!("- does not have four-line entries")
-                }
-
-                if fastq.paired_end_r1 {
-                    println!("- paired-end R1 file")
-                } else if fastq.paired_end_r2 {
-                    println!("- paired-end R2 file")
+                if let Some(fq) = fastq_results {
+                    fq.report();
                 }
             }
         }

@@ -27,4 +27,24 @@ impl FastqQuick {
                 || path_no_gz.ends_with("_02.fq"),
         }
     }
+
+    pub fn report(&self) {
+        if !self.valid_extension {
+                    println!("- does not have recognized extension")
+                }
+
+        if !self.valid_start {
+            println!("- fastq does not start with '@'")
+        }
+
+        if !self.four_line_entries {
+            println!("- does not have four-line entries")
+        }
+
+        if self.paired_end_r1 {
+            println!("- paired-end R1 file")
+        } else if self.paired_end_r2 {
+            println!("- paired-end R2 file")
+        }
+    }
 }
