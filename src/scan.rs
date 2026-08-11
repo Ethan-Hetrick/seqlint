@@ -15,7 +15,7 @@ pub struct ByteWiseCheck {
 
 impl ByteWiseCheck {
     pub fn report(&self) {
-        println!("\nScan results:");
+        println!("\nScan checks:");
         if !self.is_ascii {
             println!("- contains non-ASCII bytes");
         }

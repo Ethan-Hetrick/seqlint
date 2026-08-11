@@ -48,9 +48,10 @@ fn main() -> io::Result<()> {
         let contents: Vec<u8> = fs::read(&path)?;
 
         // Check headers
-        let is_gzip: bool = Header::new(&contents, &path);
+        let header_results = Header::new(&contents);
+        header_results.report();
 
-        let bytewise_checks_input: Vec<u8> = if is_gzip {
+        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic {
             scan::decode_reader(&contents).unwrap()
         } else {
             contents.clone()
@@ -59,14 +60,8 @@ fn main() -> io::Result<()> {
         assert!(bytewise_checks_input.len() > 0, "\n- file contents empty\n");
 
         // Footer
-        println!("\nFooter checks:");
-        let footer = Footer::new(&contents, &size);
-        if footer.bgzf_eof {
-            println!("- contains valid BGZF EOF bytes");
-        }
-        if footer.newline {
-            println!("- contains final newline");
-        }
+        let footer_results = Footer::new(&contents, &size);
+        footer_results.report();
 
         // Byte-wise checks:
         let (bytewise_results, fastq_results, fasta_results) = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection);
