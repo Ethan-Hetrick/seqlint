@@ -34,16 +34,16 @@ impl Header {
         contents.starts_with(&[67, 82, 65, 77])
     }
 
-    // fn bgzf_header(contents: &Vec<u8>) {
-    //     // 13th and 14th byte check
+    fn bgzf_header(contents: &Vec<u8>) {
+        // 13th and 14th byte check
 
-    //     match &contents[12..14] {
-    //         b"BC" => println!("- contains BGZF header (subfield ID 'BC')"),
-    //         b"EC" => println!("- contains BGZF header (subfield ID 'EC')"),
-    //         b"DC" => println!("- contains BGZF header (subfield ID 'DC')"),
-    //         _ => println!("- does not contain BGZF header"),
-    //     }
-    // }
+        match &contents[12..14] {
+            b"BC" => println!("- contains BGZF header (subfield ID 'BC')"),
+            b"EC" => println!("- contains BGZF header (subfield ID 'EC')"),
+            b"DC" => println!("- contains BGZF header (subfield ID 'DC')"),
+            _ => println!(""),
+        }
+    }
 
     pub fn new(contents: &Vec<u8>) -> Header {
         // check: headers
@@ -53,6 +53,8 @@ impl Header {
             deflate: Header::is_deflate(&contents),
             cram_magic: Header::cram_magic(&contents),
         };
+
+        Header::bgzf_header(&contents);
 
         header
     }
