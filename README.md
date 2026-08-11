@@ -117,6 +117,10 @@ seqlint <fasta,fastq> <file1 file2 file3 ...>
 - [ ] Separate errors, warnings, compatibility, and informational messages
 - [ ] Tabularized output ([tabled](https://docs.rs/crate/tabled/latest))
 
+**QoL**
+
+- [x] CLI skips duplicate input files by their canonical path
+
 ## Resources
 
 - [MAQ FASTQ specification](https://maq.sourceforge.net/fastq.shtml)

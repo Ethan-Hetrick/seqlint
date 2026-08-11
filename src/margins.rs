@@ -58,6 +58,7 @@ impl Header {
     }
 
     pub fn report(&self) {
+        println!("\nFile header checks:");
         // Error if BOM exists
         assert!(
             !self.utf_bom,

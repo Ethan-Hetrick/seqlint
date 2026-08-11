@@ -2,6 +2,7 @@ use clap::{Parser, ValueEnum};
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::collections::HashSet;
 
 mod fasta;
 mod fastq;
@@ -27,6 +28,7 @@ enum Pipeline {
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
+    let mut seen_paths = HashSet::new();
 
     let pipeline_selection = match args.pipeline {
         Pipeline::Fasta => "fasta".to_string(),
@@ -34,15 +36,20 @@ fn main() -> io::Result<()> {
     };
 
     for path_buf in &args.files {
-        let path = path_buf.to_string_lossy().into_owned();
+        let canonical_path = fs::canonicalize(&path_buf)?;
+        let path = canonical_path.to_string_lossy().into_owned();
+
+        // Skip duplicate user-provided paths
+        if !seen_paths.insert(canonical_path.clone()) {
+            println!("\nWARNING: skipping {path} as it was provided more than once\n");
+            continue
+        }
 
         // Run basic file integrity checks
         let size: usize = integrity::integrity_checks(&path);
 
-        let abs_path = fs::canonicalize(&path)?.to_string_lossy().into_owned();
-
         // print bytes
-        println!("\n{abs_path} is {size} bytes");
+        println!("\n{path} is {size} bytes");
 
         // Load file
         let contents: Vec<u8> = fs::read(&path)?;

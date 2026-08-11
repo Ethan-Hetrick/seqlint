@@ -11,7 +11,7 @@ pub struct FastqQuick {
 
 impl FastqQuick {
     pub fn new(contents: &Vec<u8>, line_count: &usize, path: &String) -> Self {
-        let path_no_gz: &str = path.strip_suffix(".gz").unwrap_or(path);
+        let path_no_gz: &str = dbg!(path.strip_suffix(".gz").unwrap_or(path));
 
         FastqQuick {
             valid_extension: VALID_FASTQ_EXTENSIONS
@@ -29,6 +29,7 @@ impl FastqQuick {
     }
 
     pub fn report(&self) {
+        println!("\nFASTQ checks (quick):");
         if !self.valid_extension {
                     println!("- does not have recognized extension")
                 }
