@@ -13,3 +13,4 @@ categories = ["command-line-utilities", "science"]
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
 flate2 = "1.1.9"
+walkdir = "2.5.0"

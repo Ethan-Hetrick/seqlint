@@ -21,6 +21,8 @@ use margins::{Footer, Header};
 struct Args {
     #[arg(short, long, value_enum)]
     pipeline: Option<Pipeline>,
+    #[arg(short='R', long)]
+    recursive: bool,
     files: Vec<PathBuf>,
 }
 
@@ -39,6 +41,8 @@ fn main() -> io::Result<()> {
         Pipeline::Fasta => "fasta",
         Pipeline::Fastq => "fastq",
     });
+
+
 
     for path_buf in &args.files {
         let canonical_path = fs::canonicalize(&path_buf)
