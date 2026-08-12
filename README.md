@@ -31,11 +31,11 @@ The `--pipeline` param is optional.
 
 - [x] gzip
 - [x] DEFLATE
-- [x] bgzip
+- [x] BGZF (Blocked GNU Zip Format)
 - [x] CRAM
 - [x] Byte Order Marks (BOM) — [UTF8, UTF16_LE, UTF16_BE, UTF32_LE, UTF32_BE](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
 - [x] BGZF End-of-file (EOF) mark
-- [x] BGZF header — 13th/14th byte subfield ID `BC` / `DC` / `EC`
+- [x] BGZF header — 13th/14th byte subfield ID `BC`
 - [ ] Format versioning
 
 **Byte-wise scanning**
@@ -122,9 +122,73 @@ The `--pipeline` param is optional.
 
 - [x] CLI skips duplicate input files by their canonical path
 
-## Resources
+## Specifications and references
 
-- [MAQ FASTQ specification](https://maq.sourceforge.net/fastq.shtml)
+>WARNING: the below list was half AI-generated. This is for my review only as I develop this tool
+
+### Core sequence formats
+
+- [FASTQ format — Cock et al. (2010)](https://pubmed.ncbi.nlm.nih.gov/20015970/)
+- [MAQ FASTQ documentation (historical)](https://maq.sourceforge.net/fastq.shtml)
+- [NCBI FASTA format requirements](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
+- [NCBI SRA FASTQ format requirements](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)
+
+### Compression and container formats
+
+- [RFC 1951 — DEFLATE Compressed Data Format Specification](https://www.rfc-editor.org/rfc/rfc1951)
+- [RFC 1952 — GZIP File Format Specification](https://www.rfc-editor.org/rfc/rfc1952)
+- [SAM/BAM and BGZF format specification](https://samtools.github.io/hts-specs/SAMv1.pdf)
+- [CRAM 3.x format specification](https://samtools.github.io/hts-specs/CRAMv3.pdf)
+- [CRAM codecs specification](https://samtools.github.io/hts-specs/CRAMcodecs.pdf)
+
+### Alignment formats
+
+- [GA4GH HTS format specifications](https://samtools.github.io/hts-specs/)
+- [SAM/BAM format specification](https://samtools.github.io/hts-specs/SAMv1.pdf)
+- [SAM/BAM/CRAM optional fields specification](https://samtools.github.io/hts-specs/SAMtags.pdf)
+- [CRAM 3.x format specification](https://samtools.github.io/hts-specs/CRAMv3.pdf)
+- [CRAM codecs specification](https://samtools.github.io/hts-specs/CRAMcodecs.pdf)
+
+### Variant formats
+
+- [VCF/BCF 4.5 format specification](https://samtools.github.io/hts-specs/VCFv4.5.pdf)
+- [BCF 2 quick reference](https://samtools.github.io/hts-specs/BCFv2_qref.pdf)
+
+### Index formats
+
+- [BAI specification — SAM/BAM specification](https://samtools.github.io/hts-specs/SAMv1.pdf)
+- [CSI v1 specification](https://samtools.github.io/hts-specs/CSIv1.pdf)
+- [Tabix index specification](https://samtools.github.io/hts-specs/tabix.pdf)
+
+### Genomic feature formats
+
+- [GA4GH BED v1 specification](https://samtools.github.io/hts-specs/BEDv1.pdf)
+- [Sequence Ontology GFF3 specification](https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md)
+- [NCBI GFF3 conventions](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/reference-docs/file-formats/annotation-files/about-ncbi-gff3/)
 - [UCSC Genome Browser FAQ: File Formats](https://genome.ucsc.edu/FAQ/FAQformat.html)
-- [NCBI FASTA format specification](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
-- [NCBI FASTQ format specification](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)
+
+### Delimited text formats
+
+- [RFC 4180 — Common Format and MIME Type for CSV Files](https://www.rfc-editor.org/rfc/rfc4180)
+
+### Sequence alphabets and identifiers
+
+- [IUPAC-IUB nucleotide nomenclature](https://www.bioinformatics.org/sms/iupac.html)
+- [NCBI FASTA sequence identifier requirements](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
+
+### Repository and archive compatibility
+
+- [NCBI SRA File Format Guide](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/)
+- [NCBI SRA Submission Guide](https://www.ncbi.nlm.nih.gov/sra/docs/submit/)
+- [ENA accepted read data formats and validation requirements](https://ena-docs.readthedocs.io/en/latest/fileprep/reads.html)
+- [NCBI GFF3 conventions](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/reference-docs/file-formats/annotation-files/about-ncbi-gff3/)
+
+### Sequencing-platform conventions
+
+- [Illumina BCL Convert FASTQ output conventions](https://support-docs.illumina.com/SW/BCL_Convert/Content/SW/BCLConvert/OutputFiles__swBCL_swBS_appBCL.htm)
+- [PacBio BAM format specification](https://pacbiofileformats.readthedocs.io/en/latest/BAM.html)
+
+### Encoding and text handling
+
+- [Unicode Standard — Byte Order Mark](https://www.unicode.org/versions/latest/)
+- [Microsoft: Using Byte Order Marks](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
