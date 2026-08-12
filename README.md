@@ -19,7 +19,8 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 
 **Heuristics**
 
-- [x] File path is valid and readable
+- [x] File path exists and is readable
+- [x] File path itself is exclusively UTF-8 compliant
 - [x] File is not empty and has at least 4 bytes for processing
 - [x] Decompressed data is not empty
 - [x] Whitespace-only file detection

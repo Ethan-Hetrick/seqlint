@@ -45,6 +45,11 @@ fn main() -> io::Result<()> {
             .map_err(|e| io::Error::new(e.kind(), format!("Path: '{}' {e}", path_buf.display())))?;
         let path = canonical_path.to_string_lossy().into_owned();
 
+        if canonical_path.to_str().is_none() {
+            eprintln!("\nERROR: path contains non-UTF-8 characters, skipping file checks..");
+            continue
+        }
+
         let equal_str = "=".repeat(path.len());
 
         eprintln!("{equal_str}\nseqlint results for:\n\n{path}");

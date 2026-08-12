@@ -79,6 +79,9 @@ cp test/fixtures/test_R2_001.fastq test/fixtures/test_02.fastq
 head -8 test/fixtures/test.fastq > test/fixtures/2-records.fastq && printf '/n' >> test/fixtures/2-records.fastq
 
 printf '>foobar\n>foobar\n' > test/fixtures/duplicate_header.fasta
+
+# non UTF-8 byte in name
+cp test.fasta $'test_\xff.fasta'
 ```
 
 ## Downloads
