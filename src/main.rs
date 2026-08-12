@@ -1,8 +1,8 @@
 use clap::{Parser, ValueEnum};
+use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::collections::HashSet;
 
 mod fasta;
 mod fastq;
@@ -16,7 +16,8 @@ use margins::{Footer, Header};
 #[command(
     version,
     about = "Linter for biological sequence data files",
-    arg_required_else_help = true)]
+    arg_required_else_help = true
+)]
 struct Args {
     #[arg(short, long, value_enum)]
     pipeline: Option<Pipeline>,
@@ -34,12 +35,10 @@ fn main() -> io::Result<()> {
     let args = Args::parse();
     let mut seen_paths = HashSet::new();
 
-    let pipeline_selection: Option<&str> = args.pipeline
-        .as_ref()
-        .map(|p| match p {
-            Pipeline::Fasta => "fasta",
-            Pipeline::Fastq => "fastq"
-        });
+    let pipeline_selection: Option<&str> = args.pipeline.as_ref().map(|p| match p {
+        Pipeline::Fasta => "fasta",
+        Pipeline::Fastq => "fastq",
+    });
 
     for path_buf in &args.files {
         let canonical_path = fs::canonicalize(&path_buf)
@@ -48,14 +47,12 @@ fn main() -> io::Result<()> {
 
         let equal_str = "=".repeat(path.len());
 
-        eprintln!(
-            "{equal_str}\nseqlint results for:\n\n{path}"
-        );
+        eprintln!("{equal_str}\nseqlint results for:\n\n{path}");
 
         // Skip duplicate user-provided paths
         if !seen_paths.insert(canonical_path.clone()) {
             eprintln!("\nWARNING: skipping {path} as it was provided more than once\n");
-            continue
+            continue;
         }
 
         // Run basic file integrity checks
@@ -63,7 +60,7 @@ fn main() -> io::Result<()> {
             Ok(()) => {}
             Err(message) => {
                 eprintln!("\nERROR: {path} {message}, skipping file checks..");
-                continue
+                continue;
             }
         }
 
@@ -84,7 +81,7 @@ fn main() -> io::Result<()> {
 
         if bytewise_checks_input.is_empty() {
             println!("\nWARNING: file contents empty, skipping subsequent checks..\n");
-            continue
+            continue;
         }
 
         // Footer
@@ -92,7 +89,8 @@ fn main() -> io::Result<()> {
         footer_results.report();
 
         // Byte-wise checks:
-        let (bytewise_results, fastq_results, fasta_results) = scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection.unwrap_or(""));
+        let (bytewise_results, fastq_results, fasta_results) =
+            scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection.unwrap_or(""));
         bytewise_results.report();
 
         match args.pipeline {
@@ -105,7 +103,8 @@ fn main() -> io::Result<()> {
                 }
             }
             Some(Pipeline::Fastq) => {
-                let fastq_quick = fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
+                let fastq_quick =
+                    fastq::FastqQuick::new(&contents, &bytewise_results.line_count, &path);
                 fastq_quick.report();
 
                 if let Some(fq) = fastq_results {

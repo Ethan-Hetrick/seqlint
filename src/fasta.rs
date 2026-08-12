@@ -20,8 +20,8 @@ impl FastaQuick {
     pub fn report(&self) {
         println!("\nFASTA checks (quick):");
         if self.valid_start {
-                    println!("- starts with '>'")
-                }
+            println!("- starts with '>'")
+        }
         if self.valid_extension {
             println!("- has valid extension")
         }

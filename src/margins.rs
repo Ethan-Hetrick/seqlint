@@ -38,13 +38,13 @@ impl Header {
     fn bgzf_header(gzip_magic: bool, contents: &Vec<u8>) -> Option<&'static str> {
         // 13th and 14th byte check
         if !gzip_magic {
-            return None
+            return None;
         }
 
         // TODO: make skip verbose eventually
         match contents.get(12..14) {
             Some(b"BC") => Some("BC"),
-            _ => None
+            _ => None,
         }
     }
 

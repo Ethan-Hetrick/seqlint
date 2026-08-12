@@ -31,8 +31,8 @@ impl FastqQuick {
     pub fn report(&self) {
         println!("\nFASTQ checks (quick):");
         if !self.valid_extension {
-                    println!("- does not have recognized extension")
-                }
+            println!("- does not have recognized extension")
+        }
 
         if !self.valid_start {
             println!("- fastq does not start with '@'")

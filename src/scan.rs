@@ -52,15 +52,14 @@ impl FastQ {
 
         if self.bad_sequence {
             println!(
-                                "- sequence line contains invalid characters. \
+                "- sequence line contains invalid characters. \
                             Only IUPAC nucleotide symbols are allowed"
-                            );
+            );
         }
 
         if self.seq_qual_mismatch {
             println!("- record and sequence lengths differ");
         }
-
     }
 }
 
@@ -88,9 +87,9 @@ impl FastA {
         }
 
         if !self.valid_seq_id {
-            println!{"- seqID contains invalid characters.\n\t\
-                        Only letters, digits, hyphens (-), underscores (_), periods (.),\
-                        colons (:), asterisks (*), and number signs (#) are allowed" }
+            println! {"- seqID contains invalid characters.\n\t\
+            Only letters, digits, hyphens (-), underscores (_), periods (.),\
+            colons (:), asterisks (*), and number signs (#) are allowed" }
         }
     }
 }
@@ -120,9 +119,10 @@ enum FastaState {
     Sequence,
 }
 
-pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
-    (ByteWiseCheck, Option<FastQ>, Option<FastA>)
-{
+pub fn bytewise_checks(
+    contents: &[u8],
+    pipeline: &str,
+) -> (ByteWiseCheck, Option<FastQ>, Option<FastA>) {
     let mut line_length: usize = 0;
     let mut i: usize = 0;
     let mut trailing_whitespace: bool = false;
@@ -282,7 +282,7 @@ pub fn bytewise_checks(contents: &[u8], pipeline: &str) ->
                             || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
                         {
                             fasta_record.record_count += 1;
-                            in_seq_id = true; 
+                            in_seq_id = true;
                         } else if *byte != b'>' && i == 1 {
                             fasta_record.missing_header_character = true;
                         }
