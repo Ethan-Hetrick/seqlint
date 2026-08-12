@@ -41,6 +41,7 @@ impl Header {
             return None
         }
 
+        // TODO: make skip verbose eventually
         match contents.get(12..14) {
             Some(b"BC") => Some("BC"),
             Some(b"DC") => Some("DC"),
