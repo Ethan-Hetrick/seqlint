@@ -1,20 +1,17 @@
 # seqlint
 
->[!WARNING] Work in progress! This project is under active development. Features, behavior, and the CLI interface are subject to change.
+>WARNING!
+>This project is under active development. Features, behavior, and the CLI interface are subject to change.
 
 A linter for bioinformatics sequence files. `seqlint` performs integrity checks, format validation, and heuristic analysis on common sequence and alignment file formats.
 
 ## Disclaimer
 
-This is the first Rust project I have attempted manually (minimal use of gen AI), and have decided that every commit will be performed by a human. I started this project on my Google Pixel 10 using [Rustroid](https://rustroid.is-a.dev/) in an attempt to replace doomscrolling with teaching myself Rust. Therefore, I'm only using genAI for code review and debugging. I currently only specify a flate2 dependency for gzip-decompression, all other code is implemented in-house.
+This is the first Rust project I have attempted manually (minimal use of gen AI), and have decided that every commit will be performed by a human. I am also new to Rust, code quality qill improve as I do.
 
-## Usage
+I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat sessions) for code review, debugging and certain trivial formatting tasks, [all reviewed carefully](https://forge.rust-lang.org/policies/llm-usage.html).
 
-```
-seqlint --pipine|-p <fasta,fastq> <file1 file2 file3 ...>
-```
-
-The `--pipeline` param is optional.
+> Fun fact: I started this project on my Google Pixel 10 using [Rustroid](https://rustroid.is-a.dev/) in an attempt to replace doomscrolling with teaching myself Rust
 
 ## Features
 
