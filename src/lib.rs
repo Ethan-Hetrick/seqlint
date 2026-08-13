@@ -1,6 +1,6 @@
 // IUPAC compatible byte check
 pub fn is_iupac_byte(b: u8) -> bool {
-    b.is_ascii_alphabetic() || matches!(b, b'-' | b'.')
+    b.is_ascii_alphabetic() && !matches!(b, b'E' | b'J' | b'O' | b'P' | b'Q' | b'X' |  b'Z')
 }
 
 // Offending ASCII bytes
