@@ -60,9 +60,10 @@ pub fn generate_canonical_path_set(path_buffers: Vec<PathBuf>, recursive: bool, 
                     }
                 };
 
+            // TODO: add verbose option to announce if duplicate paths were provided
             file_set.insert(canonical_path.to_string_lossy().into_owned());
             }
-            
+
         } else {
             let canonical_path = match fs::canonicalize(&path_buf) {
                     Ok(p) => p,

@@ -41,7 +41,7 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [x] ASCII compatibility
 - [x] Offending ASCII bytes (control characters, NUL, CR, ...)
 
-### File type pipelines
+### Specific file type checks
 
 **FASTQ**
 
@@ -119,6 +119,7 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 **QoL**
 
 - [x] CLI skips duplicate input files by their canonical path
+- [x] file recursion with configurable depth and symbolic link behavior
 
 ## Specifications and references
 

@@ -121,7 +121,7 @@ enum FastaState {
 
 pub fn bytewise_checks(
     contents: &[u8],
-    pipeline: &str,
+    format: &str,
 ) -> (ByteWiseCheck, Option<FastQ>, Option<FastA>) {
     let mut line_length: usize = 0;
     let mut i: usize = 0;
@@ -181,7 +181,7 @@ pub fn bytewise_checks(
             }
 
             // Check for duplicate FASTA headers
-            if pipeline == "fasta" && fasta_state == FastaState::Header {
+            if format == "fasta" && fasta_state == FastaState::Header {
                 let record = &contents[((i - 1) - header_len)..(i - 1)];
 
                 if !record_set.insert(record) {
@@ -200,7 +200,7 @@ pub fn bytewise_checks(
             line_start = false;
 
             // Note: this sequence occurs at every newline
-            if pipeline == "fastq" {
+            if format == "fastq" {
                 if fastq_state == FastqState::Quality {
                     fastq_record.record_count += 1;
 
@@ -213,7 +213,7 @@ pub fn bytewise_checks(
 
                 fastq_state = fastq_state.next();
                 line_start = true;
-            } else if pipeline == "fasta" {
+            } else if format == "fasta" {
                 // Increment max header length if current header is larger
                 if fasta_state == FastaState::Header && header_len > fasta_record.max_header_length
                 {
@@ -229,7 +229,7 @@ pub fn bytewise_checks(
         } else {
             line_length += 1;
 
-            if pipeline == "fastq" {
+            if format == "fastq" {
                 match fastq_state {
                     FastqState::Header => {
                         if line_start && *byte != b'@' {
@@ -256,7 +256,7 @@ pub fn bytewise_checks(
                 }
             }
 
-            if pipeline == "fasta" {
+            if format == "fasta" {
                 if fasta_state == FastaState::Sequence && line_start && *byte == b'>' {
                     fasta_state = FastaState::Header;
                     header_len = 0;
@@ -321,7 +321,7 @@ pub fn bytewise_checks(
         }
     }
 
-    if pipeline == "fastq" {
+    if format == "fastq" {
         if sequence_length != quality_length {
             println!("- Sequence and quality line lengths do not match");
         }
@@ -333,7 +333,7 @@ pub fn bytewise_checks(
         } else {
             println!("- Even number of records: {}", fastq_record.record_count);
         }
-    } else if pipeline == "fasta" {
+    } else if format == "fasta" {
         if fasta_record.max_header_length > 25 {
             let header_len = fasta_record.max_header_length.to_string();
             println! {"- header length exceeds 25 characters.\n\t\
@@ -350,7 +350,7 @@ pub fn bytewise_checks(
         line_count,
     };
 
-    match pipeline {
+    match format {
         "fastq" => (bytewise_results, Some(fastq_record), None),
         "fasta" => (bytewise_results, None, Some(fasta_record)),
         _ => (bytewise_results, None, None),
