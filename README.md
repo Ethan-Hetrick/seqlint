@@ -13,6 +13,25 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 
 > Fun fact: I started this project on my Google Pixel 10 using [Rustroid](https://rustroid.is-a.dev/) in an attempt to replace doomscrolling with teaching myself Rust
 
+## Usage
+
+```
+Linter for biological sequence data files
+
+Usage: seqlint [OPTIONS] [FILES]...
+
+Arguments:
+  [FILES]...
+
+Options:
+  -f, --format <FORMAT>        Perform file type specific checks [possible values: fasta, fastq]
+  -R, --recursive              Descend into directories
+  -L, --follow                 Follow symbolic links
+      --max-depth <MAX_DEPTH>  Maximum depth to descend into directories
+  -h, --help                   Print help
+  -V, --version                Print version
+  ```
+
 ## Features
 
 ### General file integrity checks
