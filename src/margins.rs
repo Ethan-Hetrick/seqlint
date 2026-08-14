@@ -4,6 +4,8 @@ const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 const UTF32_LE_BOM: [u8; 4] = [0xFF, 0xFE, 0x00, 0x00];
 const UTF32_BE_BOM: [u8; 4] = [0x00, 0x00, 0xFE, 0xFF];
 
+use seqlint::{pass,info,fail, log};
+
 #[derive(Debug)]
 pub struct Header {
     utf_bom: bool,
@@ -64,27 +66,27 @@ impl Header {
     }
 
     pub fn report(&self) {
-        println!("\nFile header checks:");
+        log!("== File header checks ==");
         // Error if BOM exists
         if self.utf_bom {
-            eprintln!("- WARNING!: contains UTF BOM");
+            fail!("- contains UTF BOM");
         }
 
         // Print if file is gzipped
         if self.gzip_magic {
-            println!("- gzip-compressed");
+            info!("gzip-compressed");
         }
 
         if self.deflate {
-            println! {"- compressed with DEFLATE"};
+            info! {"compressed with DEFLATE"};
         }
 
         if self.cram_magic {
-            println! {"- is a CRAM file"};
+            info! {"is a CRAM file"};
         }
 
-        if let Some(subfield) = self.bgzf_subfield {
-            eprintln!("- contains BGZF subfield: {}", subfield)
+        if let Some(_subfield) = self.bgzf_subfield {
+            info!("contains BGZF subfield 'BC'")
         }
     }
 }
@@ -118,12 +120,12 @@ impl Footer {
     }
 
     pub fn report(&self) {
-        println!("\nFooter checks:");
+        log!("== Footer checks ==");
         if self.bgzf_eof {
-            println!("- contains valid BGZF EOF bytes");
+            info!("contains valid BGZF EOF bytes");
         }
         if self.newline {
-            println!("- contains final newline");
+            pass!("last byte is a newline character");
         }
     }
 }

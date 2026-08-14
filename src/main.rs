@@ -1,5 +1,6 @@
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 use clap::{Parser, ValueEnum};
-use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -9,18 +10,27 @@ mod fastq;
 mod integrity;
 mod margins;
 mod scan;
+use seqlint::{warn, fail, log};
+use std::time::Instant;
 
 use margins::{Footer, Header};
 
 #[derive(Parser, Debug)]
-#[command(
-    version,
-    about = "Linter for biological sequence data files",
-    arg_required_else_help = true
-)]
+#[command(version, about = "Linter for biological sequence data files", arg_required_else_help = true )]
 struct Args {
+    /// Perform file type specific checks
     #[arg(short, long, value_enum)]
-    pipeline: Option<Pipeline>,
+    format: Option<Pipeline>,
+    /// Descend into directories
+    #[arg(short='R', long, default_value_t = false)]
+    recursive: bool,
+    /// Follow symbolic links
+    #[arg(short='L', long, default_value_t = false)]
+    follow: bool,
+    /// Maximum depth to descend into directories
+    #[arg(long)]
+    max_depth: Option<usize>,
+    // Positional args, can be files and/or directories
     files: Vec<PathBuf>,
 }
 
@@ -32,34 +42,27 @@ enum Pipeline {
 }
 
 fn main() -> io::Result<()> {
+    let start_time = Instant::now();
     let args = Args::parse();
-    let mut seen_paths = HashSet::new();
 
-    let pipeline_selection: Option<&str> = args.pipeline.as_ref().map(|p| match p {
+    let format_selection: Option<&str> = args.format.as_ref().map(|p| match p {
         Pipeline::Fasta => "fasta",
         Pipeline::Fastq => "fastq",
     });
 
-    for path_buf in &args.files {
-        let canonical_path = fs::canonicalize(&path_buf)
-            .map_err(|e| io::Error::new(e.kind(), format!("Path: '{}' {e}", path_buf.display())))?;
-        let path = canonical_path.to_string_lossy().into_owned();
+    let file_set = integrity::generate_canonical_path_set(args.files, args.recursive, args.max_depth, args.follow);
 
-        let equal_str = "=".repeat(path.len());
+    for path in file_set.iter() {
 
-        eprintln!("{equal_str}\nseqlint results for:\n\n{path}");
-
-        // Skip duplicate user-provided paths
-        if !seen_paths.insert(canonical_path.clone()) {
-            eprintln!("\nWARNING: skipping {path} as it was provided more than once\n");
-            continue;
-        }
+        // Print report header
+        log!("== seqlint v{VERSION} ==");
+        log!("== {path} ==");
 
         // Run basic file integrity checks
         match integrity::integrity_checks(&path) {
             Ok(()) => {}
             Err(message) => {
-                eprintln!("\nERROR: {path} {message}, skipping file checks..");
+                fail!("{path} {message}, skipping file checks..");
                 continue;
             }
         }
@@ -80,7 +83,7 @@ fn main() -> io::Result<()> {
         };
 
         if bytewise_checks_input.is_empty() {
-            println!("\nWARNING: file contents empty, skipping subsequent checks..\n");
+            warn!("file contents empty, skipping subsequent checks..\n");
             continue;
         }
 
@@ -90,10 +93,10 @@ fn main() -> io::Result<()> {
 
         // Byte-wise checks:
         let (bytewise_results, fastq_results, fasta_results) =
-            scan::bytewise_checks(&bytewise_checks_input, &pipeline_selection.unwrap_or(""));
+            scan::bytewise_checks(&bytewise_checks_input, &format_selection.unwrap_or(""));
         bytewise_results.report();
 
-        match args.pipeline {
+        match args.format {
             Some(Pipeline::Fasta) => {
                 let fasta_quick = fasta::FastaQuick::new(&contents, &path);
                 fasta_quick.report();
@@ -115,5 +118,8 @@ fn main() -> io::Result<()> {
         }
     }
 
+    let execution_time = start_time.elapsed();
+
+    log!("seqlint completed in {execution_time:?}");
     Ok(())
 }

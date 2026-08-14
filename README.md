@@ -13,13 +13,33 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 
 > Fun fact: I started this project on my Google Pixel 10 using [Rustroid](https://rustroid.is-a.dev/) in an attempt to replace doomscrolling with teaching myself Rust
 
+## Usage
+
+```
+Linter for biological sequence data files
+
+Usage: seqlint [OPTIONS] [FILES]...
+
+Arguments:
+  [FILES]...
+
+Options:
+  -f, --format <FORMAT>        Perform file type specific checks [possible values: fasta, fastq]
+  -R, --recursive              Descend into directories
+  -L, --follow                 Follow symbolic links
+      --max-depth <MAX_DEPTH>  Maximum depth to descend into directories
+  -h, --help                   Print help
+  -V, --version                Print version
+  ```
+
 ## Features
 
 ### General file integrity checks
 
 **Heuristics**
 
-- [x] File path is valid and readable
+- [x] File path exists and is readable
+- [x] File path itself is exclusively UTF-8 compliant
 - [x] File is not empty and has at least 4 bytes for processing
 - [x] Decompressed data is not empty
 - [x] Whitespace-only file detection
@@ -40,7 +60,7 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [x] ASCII compatibility
 - [x] Offending ASCII bytes (control characters, NUL, CR, ...)
 
-### File type pipelines
+### Specific file type checks
 
 **FASTQ**
 
@@ -52,8 +72,9 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [x] Detect paired-end read nomenclature in filenames (`<..>_R{1,2}_<..>`, `<..>_0{1,2}<.f..>`)
 - [x] Report record count and parity (even/odd)
 - [x] Sequence length equals quality length
-- [ ] Phred quality encoding
-- [ ] Sequence ID check
+- [x] Phred quality encoding
+- [ ] Sequence ID
+- [x] "+" line non-empty
 - [ ] Optional seqname after `+` must match the seqname following `@`
 
 **FASTA**
@@ -112,12 +133,12 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 **User experience**
 
 - [x] CLI
-- [ ] Separate errors, warnings, compatibility, and informational messages
-- [ ] Tabularized output ([tabled](https://docs.rs/crate/tabled/latest))
+- [x] Output organized into LOG, WARN, PASS, FAIL
 
 **QoL**
 
 - [x] CLI skips duplicate input files by their canonical path
+- [x] file recursion with configurable depth and symbolic link behavior
 
 ## Specifications and references
 

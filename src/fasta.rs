@@ -2,6 +2,8 @@ const VALID_FASTA_EXTENSIONS: [&str; 8] = [
     ".fasta", ".fa", ".faa", ".fna", ".ffn", ".fas", ".frn", ".mpfa",
 ];
 
+use seqlint::{pass, warn, info};
+
 pub struct FastaQuick {
     pub valid_extension: bool,
     pub valid_start: bool,
@@ -18,12 +20,18 @@ impl FastaQuick {
     }
 
     pub fn report(&self) {
-        println!("\nFASTA checks (quick):");
+        info!("== FASTA checks (quick) ==");
+
         if self.valid_start {
-            println!("- starts with '>'")
+            pass!("starts with '>'")
+        } else {
+            warn!("does not start with '>'")
         }
+
         if self.valid_extension {
-            println!("- has valid extension")
+            pass!("has valid file extension")
+        } else {
+            warn!("does not have recognized file extension")
         }
     }
 }

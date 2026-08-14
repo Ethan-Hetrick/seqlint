@@ -3,6 +3,7 @@ use seqlint::{is_iupac_byte, is_offender, is_whitespace};
 use std::collections::HashSet;
 use std::io;
 use std::io::Read;
+use seqlint::{pass, warn, fail, info, log};
 
 #[derive(Debug)]
 pub struct ByteWiseCheck {
@@ -15,18 +16,18 @@ pub struct ByteWiseCheck {
 
 impl ByteWiseCheck {
     pub fn report(&self) {
-        println!("\nScan checks:");
+        log!("== Scan checks ==");
         if !self.is_ascii {
-            println!("- contains non-ASCII bytes");
+            fail!("contains non-ASCII bytes");
         }
         if self.contains_offensive_bytes {
-            println!("- contains unsupported ASCII bytes");
+            fail!("contains unsupported ASCII bytes");
         }
         if self.trailing_whitespace {
-            println!("- contains trailing whitespace");
+            warn!("contains trailing whitespace");
         }
         if self.empty_line {
-            println!("- contains empty lines");
+            warn!("contains empty lines");
         }
     }
 }
@@ -37,28 +38,36 @@ pub struct FastQ {
     pub bad_sequence: bool,
     pub record_count: usize,
     pub seq_qual_mismatch: bool,
+    pub empty_plus_line: bool,
+    pub phred_33_compatible: bool,
+    pub phred_64_compatible: bool,
+    pub solexa_compatible: bool,
 }
 
 impl FastQ {
     pub fn report(&self) {
-        println!("- Counted {} records", self.record_count);
+        pass!("Counted {} records", self.record_count);
         if self.missing_header_character {
-            println! {"- header line does not start with '@'"};
+            fail! {"header line does not start with '@'"};
         }
 
         if self.missing_delimiter {
-            println! {"- sequence line does not start with '+'"};
+            fail! {"sequence line does not start with '+'"};
         }
 
         if self.bad_sequence {
-            println!(
-                "- sequence line contains invalid characters. \
+            fail!(
+                "sequence line contains invalid characters. \
                             Only IUPAC nucleotide symbols are allowed"
             );
         }
 
         if self.seq_qual_mismatch {
-            println!("- record and sequence lengths differ");
+            fail!("record and sequence lengths differ");
+        }
+
+        if !self.empty_plus_line {
+            warn!("title '+' line not empty");
         }
     }
 }
@@ -76,18 +85,18 @@ pub struct FastA {
 
 impl FastA {
     pub fn report(&self) {
-        println!("\nFASTA checks:");
+        log!("== FASTA checks ==");
 
         if self.empty_record {
-            println!("- contains empty record");
+            fail!("contains empty record");
         }
 
         if self.long_sequence {
-            println!("- sequence line is longer than 80 characters")
+            warn!("sequence line is longer than 80 characters")
         }
 
         if !self.valid_seq_id {
-            println! {"- seqID contains invalid characters.\n\t\
+            warn! {"seqID contains invalid characters for NCBI submission.\n\t\
             Only letters, digits, hyphens (-), underscores (_), periods (.),\
             colons (:), asterisks (*), and number signs (#) are allowed" }
         }
@@ -121,7 +130,7 @@ enum FastaState {
 
 pub fn bytewise_checks(
     contents: &[u8],
-    pipeline: &str,
+    format: &str,
 ) -> (ByteWiseCheck, Option<FastQ>, Option<FastA>) {
     let mut line_length: usize = 0;
     let mut i: usize = 0;
@@ -138,6 +147,10 @@ pub fn bytewise_checks(
         bad_sequence: false,
         record_count: 0,
         seq_qual_mismatch: false,
+        empty_plus_line: true,
+        phred_33_compatible: true,
+        phred_64_compatible: true,
+        solexa_compatible: true,
     };
     let mut fasta_record = FastA {
         missing_header_character: false,
@@ -181,7 +194,7 @@ pub fn bytewise_checks(
             }
 
             // Check for duplicate FASTA headers
-            if pipeline == "fasta" && fasta_state == FastaState::Header {
+            if format == "fasta" && fasta_state == FastaState::Header {
                 let record = &contents[((i - 1) - header_len)..(i - 1)];
 
                 if !record_set.insert(record) {
@@ -200,7 +213,7 @@ pub fn bytewise_checks(
             line_start = false;
 
             // Note: this sequence occurs at every newline
-            if pipeline == "fastq" {
+            if format == "fastq" {
                 if fastq_state == FastqState::Quality {
                     fastq_record.record_count += 1;
 
@@ -213,7 +226,7 @@ pub fn bytewise_checks(
 
                 fastq_state = fastq_state.next();
                 line_start = true;
-            } else if pipeline == "fasta" {
+            } else if format == "fasta" {
                 // Increment max header length if current header is larger
                 if fasta_state == FastaState::Header && header_len > fasta_record.max_header_length
                 {
@@ -229,7 +242,7 @@ pub fn bytewise_checks(
         } else {
             line_length += 1;
 
-            if pipeline == "fastq" {
+            if format == "fastq" {
                 match fastq_state {
                     FastqState::Header => {
                         if line_start && *byte != b'@' {
@@ -248,15 +261,34 @@ pub fn bytewise_checks(
                         if line_start && *byte != b'+' && !fastq_record.missing_delimiter {
                             fastq_record.missing_delimiter = true;
                         }
+
+                        // check if + line is empty
+                        // next char should be a line ending
+                        // TODO: check if identical to header line
+                        if line_start && *&contents[i] != b'\n' {
+                            fastq_record.empty_plus_line = false;
+                        }
                     }
 
                     FastqState::Quality => {
                         quality_length += 1;
+
+                        if *byte < 64 || *byte > 126 {
+                            fastq_record.phred_64_compatible = false;
+                        }
+
+                        if *byte < 33 || *byte > 126 {
+                            fastq_record.phred_33_compatible = false;
+                        }
+
+                        if *byte < 59 || *byte > 126 {
+                            fastq_record.solexa_compatible = false;
+                        }
                     }
                 }
             }
 
-            if pipeline == "fasta" {
+            if format == "fasta" {
                 if fasta_state == FastaState::Sequence && line_start && *byte == b'>' {
                     fasta_state = FastaState::Header;
                     header_len = 0;
@@ -278,6 +310,7 @@ pub fn bytewise_checks(
                             }
                         }
 
+                        // check: missing header
                         if (*byte == b'>' && i == 1)
                             || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
                         {
@@ -287,6 +320,7 @@ pub fn bytewise_checks(
                             fasta_record.missing_header_character = true;
                         }
 
+                        // toggle off seqID after the first space
                         if *byte == b' ' {
                             in_seq_id = false;
                         }
@@ -308,7 +342,7 @@ pub fn bytewise_checks(
 
                         if !is_iupac_byte(*byte) {
                             if fasta_record.valid_sequence {
-                                println! {"- sequence contains invalid characters. \
+                                fail! {"sequence contains invalid characters. \
                                 Only IUPAC nucleotide symbols are allowed"};
                             }
                             fasta_record.valid_sequence = false;
@@ -321,22 +355,34 @@ pub fn bytewise_checks(
         }
     }
 
-    if pipeline == "fastq" {
+    if format == "fastq" {
         if sequence_length != quality_length {
-            println!("- Sequence and quality line lengths do not match");
+            fail!("Sequence and quality line lengths do not match");
+        }
+
+        if !fastq_record.phred_33_compatible {
+            fail!("quality score incompabile with PHRED +33");
+        }
+
+        if fastq_record.phred_64_compatible {
+                info!("quality score compabile with PHRED +64");
+            }
+
+        if fastq_record.phred_64_compatible {
+            info!("quality score compabile with Solexa +64");
         }
 
         if fastq_record.record_count == 0 {
-            println!("- Zero records found");
+            fail!("Zero records found");
         } else if fastq_record.record_count % 2 != 0 {
-            println!("- Odd number of records: {}", fastq_record.record_count);
+            info!("Odd number of records");
         } else {
-            println!("- Even number of records: {}", fastq_record.record_count);
+            info!("Even number of records");
         }
-    } else if pipeline == "fasta" {
+    } else if format == "fasta" {
         if fasta_record.max_header_length > 25 {
             let header_len = fasta_record.max_header_length.to_string();
-            println! {"- header length exceeds 25 characters.\n\t\
+            warn! {"header length exceeds 25 characters.\n\t\
                 Longest header is {header_len} characters long"
             }
         }
@@ -350,7 +396,7 @@ pub fn bytewise_checks(
         line_count,
     };
 
-    match pipeline {
+    match format {
         "fastq" => (bytewise_results, Some(fastq_record), None),
         "fasta" => (bytewise_results, None, Some(fasta_record)),
         _ => (bytewise_results, None, None),
