@@ -37,6 +37,7 @@ pub struct FastQ {
     pub bad_sequence: bool,
     pub record_count: usize,
     pub seq_qual_mismatch: bool,
+    pub empty_plus_line: bool,
 }
 
 impl FastQ {
@@ -59,6 +60,10 @@ impl FastQ {
 
         if self.seq_qual_mismatch {
             println!("- record and sequence lengths differ");
+        }
+
+        if !self.empty_plus_line {
+            println!("- title '+' line not empty");
         }
     }
 }
@@ -138,6 +143,7 @@ pub fn bytewise_checks(
         bad_sequence: false,
         record_count: 0,
         seq_qual_mismatch: false,
+        empty_plus_line: true,
     };
     let mut fasta_record = FastA {
         missing_header_character: false,
@@ -248,6 +254,12 @@ pub fn bytewise_checks(
                         if line_start && *byte != b'+' && !fastq_record.missing_delimiter {
                             fastq_record.missing_delimiter = true;
                         }
+
+                        // check if + line is empty
+                        // next char should be a line ending
+                        if line_start && *&contents[i] != b'\n' {
+                            fastq_record.empty_plus_line = false;
+                        }
                     }
 
                     FastqState::Quality => {
@@ -278,6 +290,7 @@ pub fn bytewise_checks(
                             }
                         }
 
+                        // check: missing header
                         if (*byte == b'>' && i == 1)
                             || (i >= 2 && *byte == b'>' && contents[i - 2] == b'\n')
                         {
@@ -287,6 +300,7 @@ pub fn bytewise_checks(
                             fasta_record.missing_header_character = true;
                         }
 
+                        // toggle off seqID after the first space
                         if *byte == b' ' {
                             in_seq_id = false;
                         }
