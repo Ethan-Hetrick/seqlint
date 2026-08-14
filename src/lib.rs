@@ -13,45 +13,53 @@ pub fn is_whitespace(b: u8) -> bool {
     matches!(b, 0x9 | 0x20)
 }
 
-// ANSI colors
-pub const RED: &str = "\x1b[31m";
-pub const YELLOW: &str = "\x1b[33m";
-pub const GREEN: &str = "\x1b[32m";
-pub const RESET: &str = "\x1b[0m";
-pub const BLUE: &str = "\x1b[34m";
-pub const DIM: &str = "\x1b[2m";
+use std::io::IsTerminal;
+use std::sync::OnceLock;
+
+static USE_COLOR: OnceLock<bool> = OnceLock::new();
+
+pub fn use_color() -> bool {
+    *USE_COLOR.get_or_init(|| std::io::stdout().is_terminal())
+}
+
+pub fn green() -> &'static str { if use_color() { "\x1b[32m" } else { "" } }
+pub fn yellow() -> &'static str { if use_color() { "\x1b[33m" } else { "" } }
+pub fn red() -> &'static str { if use_color() { "\x1b[31m" } else { "" } }
+pub fn blue() -> &'static str { if use_color() { "\x1b[34m" } else { "" } }
+pub fn dim() -> &'static str { if use_color() { "\x1b[2m" } else { "" } }
+pub fn reset() -> &'static str { if use_color() { "\x1b[0m" } else { "" } }
 
 #[macro_export]
 macro_rules! pass {
     ($($arg:tt)*) => {
-        println!("{}PASS{}: {}", $crate::GREEN, $crate::RESET, format!($($arg)*))
+        println!("{}PASS{}: {}", $crate::green(), $crate::reset(), format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! warn {
     ($($arg:tt)*) => {
-        eprintln!("{}WARN{}: {}", $crate::YELLOW, $crate::RESET, format!($($arg)*))
+        println!("{}WARN{}: {}", $crate::yellow(), $crate::reset(), format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! fail {
     ($($arg:tt)*) => {
-        eprintln!("{}FAIL{}: {}", $crate::RED, $crate::RESET, format!($($arg)*))
+        println!("{}FAIL{}: {}", $crate::red(), $crate::reset(), format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
-        println!("{}INFO{}: {}", $crate::BLUE, $crate::RESET, format!($($arg)*))
+        println!("{}INFO{}: {}", $crate::blue(), $crate::reset(), format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {
-        eprintln!("{}LOG{}: {}", $crate::DIM, $crate::RESET, format!($($arg)*))
+        println!("{}LOG{}: {}", $crate::dim(), $crate::reset(), format!($($arg)*))
     };
 }
