@@ -38,6 +38,9 @@ pub struct FastQ {
     pub record_count: usize,
     pub seq_qual_mismatch: bool,
     pub empty_plus_line: bool,
+    pub phred_33_compatible: bool,
+    pub phred_64_compatible: bool,
+    pub solexa_compatible: bool,
 }
 
 impl FastQ {
@@ -144,6 +147,9 @@ pub fn bytewise_checks(
         record_count: 0,
         seq_qual_mismatch: false,
         empty_plus_line: true,
+        phred_33_compatible: true,
+        phred_64_compatible: true,
+        solexa_compatible: true,
     };
     let mut fasta_record = FastA {
         missing_header_character: false,
@@ -265,6 +271,18 @@ pub fn bytewise_checks(
 
                     FastqState::Quality => {
                         quality_length += 1;
+
+                        if *byte < 64 || *byte > 126 {
+                            fastq_record.phred_64_compatible = false;
+                        }
+
+                        if *byte < 33 || *byte > 126 {
+                            fastq_record.phred_33_compatible = false;
+                        }
+
+                        if *byte < 59 || *byte > 126 {
+                            fastq_record.solexa_compatible = false;
+                        }
                     }
                 }
             }
@@ -338,20 +356,32 @@ pub fn bytewise_checks(
 
     if format == "fastq" {
         if sequence_length != quality_length {
-            println!("- Sequence and quality line lengths do not match");
+            eprintln!("- Sequence and quality line lengths do not match");
+        }
+
+        if !fastq_record.phred_33_compatible {
+            eprintln!("- quality score incompabile with PHRED +33");
+        }
+
+        if fastq_record.phred_64_compatible {
+                eprintln!("- quality score compabile with PHRED +64");
+            }
+
+        if fastq_record.phred_64_compatible {
+            eprintln!("- quality score compabile with Solexa +64");
         }
 
         if fastq_record.record_count == 0 {
-            println!("- Zero records found");
+            eprintln!("- Zero records found");
         } else if fastq_record.record_count % 2 != 0 {
-            println!("- Odd number of records: {}", fastq_record.record_count);
+            eprintln!("- Odd number of records: {}", fastq_record.record_count);
         } else {
-            println!("- Even number of records: {}", fastq_record.record_count);
+            eprintln!("- Even number of records: {}", fastq_record.record_count);
         }
     } else if format == "fasta" {
         if fasta_record.max_header_length > 25 {
             let header_len = fasta_record.max_header_length.to_string();
-            println! {"- header length exceeds 25 characters.\n\t\
+            eprintln! {"- header length exceeds 25 characters.\n\t\
                 Longest header is {header_len} characters long"
             }
         }

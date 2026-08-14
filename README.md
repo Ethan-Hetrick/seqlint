@@ -53,7 +53,7 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [x] Detect paired-end read nomenclature in filenames (`<..>_R{1,2}_<..>`, `<..>_0{1,2}<.f..>`)
 - [x] Report record count and parity (even/odd)
 - [x] Sequence length equals quality length
-- [ ] Phred quality encoding
+- [x] Phred quality encoding
 - [ ] Sequence ID
 - [x] "+" line non-empty
 - [ ] Optional seqname after `+` must match the seqname following `@`
@@ -132,6 +132,7 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [MAQ FASTQ documentation (historical)](https://maq.sourceforge.net/fastq.shtml)
 - [NCBI FASTA format requirements](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
 - [NCBI SRA FASTQ format requirements](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)
+- []
 
 ### Compression and container formats
 
