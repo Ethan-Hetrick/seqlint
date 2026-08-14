@@ -114,7 +114,7 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 **User experience**
 
 - [x] CLI
-- [ ] Separate errors, warnings, compatibility, and informational messages
+- [x] Output organized into LOG, WARN, PASS, FAIL
 - [ ] Tabularized output ([tabled](https://docs.rs/crate/tabled/latest))
 
 **QoL**
