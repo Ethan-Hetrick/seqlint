@@ -374,9 +374,9 @@ pub fn bytewise_checks(
         if fastq_record.record_count == 0 {
             eprintln!("- Zero records found");
         } else if fastq_record.record_count % 2 != 0 {
-            eprintln!("- Odd number of records: {}", fastq_record.record_count);
+            eprintln!("- Odd number of records");
         } else {
-            eprintln!("- Even number of records: {}", fastq_record.record_count);
+            eprintln!("- Even number of records");
         }
     } else if format == "fasta" {
         if fasta_record.max_header_length > 25 {
