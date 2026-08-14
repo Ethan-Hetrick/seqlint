@@ -1,3 +1,5 @@
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 use clap::{Parser, ValueEnum};
 use std::fs;
 use std::io;
@@ -8,6 +10,8 @@ mod fastq;
 mod integrity;
 mod margins;
 mod scan;
+use seqlint::{warn, fail, log};
+use std::time::Instant;
 
 use margins::{Footer, Header};
 
@@ -38,6 +42,7 @@ enum Pipeline {
 }
 
 fn main() -> io::Result<()> {
+    let start_time = Instant::now();
     let args = Args::parse();
 
     let format_selection: Option<&str> = args.format.as_ref().map(|p| match p {
@@ -50,14 +55,14 @@ fn main() -> io::Result<()> {
     for path in file_set.iter() {
 
         // Print report header
-        let equal_str = "=".repeat(path.len());
-        eprintln!("{equal_str}\nseqlint results for:\n\n{path}");
+        log!("== seqlint v{VERSION} ==");
+        log!("== {path} ==");
 
         // Run basic file integrity checks
         match integrity::integrity_checks(&path) {
             Ok(()) => {}
             Err(message) => {
-                eprintln!("\nERROR: {path} {message}, skipping file checks..");
+                fail!("{path} {message}, skipping file checks..");
                 continue;
             }
         }
@@ -78,7 +83,7 @@ fn main() -> io::Result<()> {
         };
 
         if bytewise_checks_input.is_empty() {
-            println!("\nWARNING: file contents empty, skipping subsequent checks..\n");
+            warn!("file contents empty, skipping subsequent checks..\n");
             continue;
         }
 
@@ -113,5 +118,8 @@ fn main() -> io::Result<()> {
         }
     }
 
+    let execution_time = start_time.elapsed();
+
+    log!("seqlint completed in {execution_time:?}");
     Ok(())
 }

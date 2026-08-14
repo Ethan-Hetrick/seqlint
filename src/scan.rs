@@ -3,6 +3,7 @@ use seqlint::{is_iupac_byte, is_offender, is_whitespace};
 use std::collections::HashSet;
 use std::io;
 use std::io::Read;
+use seqlint::{pass, warn, fail, info, log};
 
 #[derive(Debug)]
 pub struct ByteWiseCheck {
@@ -15,18 +16,18 @@ pub struct ByteWiseCheck {
 
 impl ByteWiseCheck {
     pub fn report(&self) {
-        println!("\nScan checks:");
+        log!("== Scan checks ==");
         if !self.is_ascii {
-            println!("- contains non-ASCII bytes");
+            fail!("contains non-ASCII bytes");
         }
         if self.contains_offensive_bytes {
-            println!("- contains unsupported ASCII bytes");
+            fail!("contains unsupported ASCII bytes");
         }
         if self.trailing_whitespace {
-            println!("- contains trailing whitespace");
+            warn!("contains trailing whitespace");
         }
         if self.empty_line {
-            println!("- contains empty lines");
+            warn!("contains empty lines");
         }
     }
 }
@@ -45,28 +46,28 @@ pub struct FastQ {
 
 impl FastQ {
     pub fn report(&self) {
-        println!("- Counted {} records", self.record_count);
+        pass!("Counted {} records", self.record_count);
         if self.missing_header_character {
-            println! {"- header line does not start with '@'"};
+            fail! {"header line does not start with '@'"};
         }
 
         if self.missing_delimiter {
-            println! {"- sequence line does not start with '+'"};
+            fail! {"sequence line does not start with '+'"};
         }
 
         if self.bad_sequence {
-            println!(
-                "- sequence line contains invalid characters. \
+            fail!(
+                "sequence line contains invalid characters. \
                             Only IUPAC nucleotide symbols are allowed"
             );
         }
 
         if self.seq_qual_mismatch {
-            println!("- record and sequence lengths differ");
+            fail!("record and sequence lengths differ");
         }
 
         if !self.empty_plus_line {
-            println!("- title '+' line not empty");
+            warn!("title '+' line not empty");
         }
     }
 }
@@ -84,18 +85,18 @@ pub struct FastA {
 
 impl FastA {
     pub fn report(&self) {
-        println!("\nFASTA checks:");
+        log!("== FASTA checks ==");
 
         if self.empty_record {
-            println!("- contains empty record");
+            fail!("contains empty record");
         }
 
         if self.long_sequence {
-            println!("- sequence line is longer than 80 characters")
+            warn!("sequence line is longer than 80 characters")
         }
 
         if !self.valid_seq_id {
-            println! {"- seqID contains invalid characters.\n\t\
+            warn! {"seqID contains invalid characters for NCBI submission.\n\t\
             Only letters, digits, hyphens (-), underscores (_), periods (.),\
             colons (:), asterisks (*), and number signs (#) are allowed" }
         }
@@ -341,7 +342,7 @@ pub fn bytewise_checks(
 
                         if !is_iupac_byte(*byte) {
                             if fasta_record.valid_sequence {
-                                println! {"- sequence contains invalid characters. \
+                                fail! {"sequence contains invalid characters. \
                                 Only IUPAC nucleotide symbols are allowed"};
                             }
                             fasta_record.valid_sequence = false;
@@ -356,32 +357,32 @@ pub fn bytewise_checks(
 
     if format == "fastq" {
         if sequence_length != quality_length {
-            eprintln!("- Sequence and quality line lengths do not match");
+            fail!("Sequence and quality line lengths do not match");
         }
 
         if !fastq_record.phred_33_compatible {
-            eprintln!("- quality score incompabile with PHRED +33");
+            fail!("quality score incompabile with PHRED +33");
         }
 
         if fastq_record.phred_64_compatible {
-                eprintln!("- quality score compabile with PHRED +64");
+                info!("quality score compabile with PHRED +64");
             }
 
         if fastq_record.phred_64_compatible {
-            eprintln!("- quality score compabile with Solexa +64");
+            info!("quality score compabile with Solexa +64");
         }
 
         if fastq_record.record_count == 0 {
-            eprintln!("- Zero records found");
+            fail!("Zero records found");
         } else if fastq_record.record_count % 2 != 0 {
-            eprintln!("- Odd number of records");
+            info!("Odd number of records");
         } else {
-            eprintln!("- Even number of records");
+            info!("Even number of records");
         }
     } else if format == "fasta" {
         if fasta_record.max_header_length > 25 {
             let header_len = fasta_record.max_header_length.to_string();
-            eprintln! {"- header length exceeds 25 characters.\n\t\
+            warn! {"header length exceeds 25 characters.\n\t\
                 Longest header is {header_len} characters long"
             }
         }

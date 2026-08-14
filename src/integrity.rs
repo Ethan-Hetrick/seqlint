@@ -2,6 +2,7 @@ use std::fs;
 use std::collections::HashSet;
 use walkdir::WalkDir;
 use std::path::PathBuf;
+use seqlint::{warn, fail};
 
 enum FailureStates {
     NotReadable,
@@ -24,8 +25,8 @@ pub fn generate_canonical_path_set(path_buffers: Vec<PathBuf>, recursive: bool, 
 
     for path_buf in &path_buffers {
         if path_buf.to_str().is_none() {
-            eprintln!(
-                "\nERROR: path '{}' contains non-UTF-8 characters, skipping..",
+            fail!(
+                "\npath '{}' contains non-UTF-8 characters, skipping..",
                 path_buf.display()
             );
             continue;
@@ -47,7 +48,7 @@ pub fn generate_canonical_path_set(path_buffers: Vec<PathBuf>, recursive: bool, 
                 let entry = match entry {
                     Ok(e) => e,
                     Err(err) => {
-                        eprintln!("\nWARNING: skipping unreadable entry: {err}");
+                        warn!("skipping unreadable entry: {err}");
                         continue;
                     }
                 };
@@ -55,7 +56,7 @@ pub fn generate_canonical_path_set(path_buffers: Vec<PathBuf>, recursive: bool, 
                 let canonical_path = match fs::canonicalize(entry.path()) {
                     Ok(p) => p,
                     Err(e) => {
-                        eprintln!("\nERROR: Path: '{}' {e}, skipping..", entry.path().display());
+                        fail!("\nPath: '{}' {e}, skipping..", entry.path().display());
                         continue;
                     }
                 };
@@ -68,13 +69,13 @@ pub fn generate_canonical_path_set(path_buffers: Vec<PathBuf>, recursive: bool, 
             let canonical_path = match fs::canonicalize(&path_buf) {
                     Ok(p) => p,
                     Err(e) => {
-                        eprintln!("\nERROR: Path: '{}' {e}, skipping..", path_buf.display());
+                        fail!("Path: '{}' {e}, skipping..", path_buf.display());
                         continue;
                     }
             };
 
             if !canonical_path.is_file() {
-                        eprintln!("Skipping directory (use -R to recurse): {}", canonical_path.display());
+                        warn!("skipping directory (use -R to recurse): {}", canonical_path.display());
                         continue;
             }
 

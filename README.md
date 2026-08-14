@@ -132,7 +132,6 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [MAQ FASTQ documentation (historical)](https://maq.sourceforge.net/fastq.shtml)
 - [NCBI FASTA format requirements](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
 - [NCBI SRA FASTQ format requirements](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)
-- []
 
 ### Compression and container formats
 
