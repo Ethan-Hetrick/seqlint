@@ -54,7 +54,8 @@ I'm only using genAI (mostly Claude Opus 4.8, no agents, just short web chat ses
 - [x] Report record count and parity (even/odd)
 - [x] Sequence length equals quality length
 - [ ] Phred quality encoding
-- [ ] Sequence ID check
+- [ ] Sequence ID
+- [x] "+" line non-empty
 - [ ] Optional seqname after `+` must match the seqname following `@`
 
 **FASTA**

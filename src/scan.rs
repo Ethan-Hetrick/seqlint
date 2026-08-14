@@ -257,6 +257,7 @@ pub fn bytewise_checks(
 
                         // check if + line is empty
                         // next char should be a line ending
+                        // TODO: check if identical to header line
                         if line_start && *&contents[i] != b'\n' {
                             fastq_record.empty_plus_line = false;
                         }
