@@ -4,7 +4,7 @@ const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 const UTF32_LE_BOM: [u8; 4] = [0xFF, 0xFE, 0x00, 0x00];
 const UTF32_BE_BOM: [u8; 4] = [0x00, 0x00, 0xFE, 0xFF];
 
-use seqlint::{pass,info, log, warn, fail};
+use seqlint::{info, log, warn, fail};
 
 #[derive(Debug)]
 pub struct Header {
@@ -166,7 +166,7 @@ impl Footer {
     }
 
     fn check_final_newline(contents: &[u8], size: &usize) -> bool {
-        contents[*&size - 1] == 0x0A
+        contents[*&size - 1] == b'\n'
     }
 
     pub fn new(contents: &Vec<u8>, size: &usize) -> Footer {
@@ -183,10 +183,8 @@ impl Footer {
         if self.bgzf_eof {
             info!("contains valid BGZF EOF bytes");
         }
-        if self.newline {
-            pass!("last byte is a newline character");
-        } else {
-            warn!("missing final newline character")
+        if !self.newline && !self.bgzf_eof {
+            warn!("missing final newline/return character")
         }
     }
 }

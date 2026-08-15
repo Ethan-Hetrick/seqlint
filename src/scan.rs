@@ -12,6 +12,7 @@ pub struct ByteWiseCheck {
     pub trailing_whitespace: bool,
     pub empty_line: bool,
     pub line_count: usize,
+    pub final_newline: bool,
 }
 
 impl ByteWiseCheck {
@@ -28,6 +29,9 @@ impl ByteWiseCheck {
         }
         if self.empty_line {
             warn!("contains empty lines");
+        }
+        if !self.final_newline {
+            warn!("missing final newline/return character");
         }
     }
 }
@@ -171,10 +175,17 @@ pub fn bytewise_checks(
     let mut fasta_state = FastaState::Header;
     let mut line_start: bool = true;
     let mut seq_id_len: usize = 0;
+    let mut final_newline: bool = true;
 
     for byte in contents.iter() {
         // increase index
         i += 1;
+
+        if i == contents.len() {
+            if *byte != b'\n' {
+                final_newline = false;
+            }
+        }
 
         // check: all bytes are ASCII
         if !byte.is_ascii() {
@@ -413,6 +424,7 @@ pub fn bytewise_checks(
         trailing_whitespace,
         empty_line,
         line_count,
+        final_newline,
     };
 
     match format {
@@ -442,6 +454,8 @@ pub fn decode_bgzf(contents: &[u8]) -> io::Result<Vec<u8>> {
 
         i += block_len;
     }
+
+    println!("{}", String::from_utf8_lossy(&decompressed_contents));
 
     Ok(decompressed_contents)
 }
