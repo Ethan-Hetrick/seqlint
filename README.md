@@ -53,6 +53,8 @@ Options:
 - [x] Byte Order Marks (BOM) — [UTF8, UTF16_LE, UTF16_BE, UTF32_LE, UTF32_BE](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
 - [x] BGZF End-of-file (EOF) mark
 - [x] BGZF header — 13th/14th byte subfield ID `BC`
+- [x] BGZF header - 4-5 bytes are set
+- [x] BGZF header - xlen = 6, slen = 2
 - [ ] Format versioning
 
 **Byte-wise scanning**

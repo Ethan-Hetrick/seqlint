@@ -13,6 +13,9 @@ pub struct Header {
     deflate: bool,
     cram_magic: bool,
     bgzf_subfield: Option<&'static str>,
+    fourth_and_fifth_bytes_set: bool,
+    xlen: u16,
+    slen: u16,
 }
 
 impl Header {
@@ -31,6 +34,18 @@ impl Header {
     fn is_deflate(contents: &Vec<u8>) -> bool {
         // 3rd byte set to 8 for DEFLATE]
         contents[2] == 8
+    }
+
+    fn fourth_and_fifth_bytes_set(contents: &Vec<u8>) -> bool {
+        contents[3] == 0 || contents[4] == 0
+    }
+
+    fn xlen(contents: &Vec<u8>) -> u16 {
+        u16::from_le_bytes([contents[10], contents[11]])
+    }
+
+    fn slen(contents: &Vec<u8>) -> u16 {
+        u16::from_le_bytes([contents[14], contents[15]])
     }
 
     fn cram_magic(contents: &Vec<u8>) -> bool {
@@ -60,12 +75,17 @@ impl Header {
             deflate: Header::is_deflate(&contents),
             cram_magic: Header::cram_magic(&contents),
             bgzf_subfield: Header::bgzf_header(gzip_magic, &contents),
+            fourth_and_fifth_bytes_set: Header::fourth_and_fifth_bytes_set(&contents),
+            xlen: Header::xlen(&contents),
+            slen: Header::slen(&contents),
         };
 
         header
     }
 
     pub fn report(&self) {
+        let mut bgzf_subfield_valid: bool = false;
+
         log!("== File header checks ==");
         // Error if BOM exists
         if self.utf_bom {
@@ -86,8 +106,28 @@ impl Header {
         }
 
         if let Some(_subfield) = self.bgzf_subfield {
-            info!("contains BGZF subfield 'BC'")
+            info!("contains BGZF subfield 'BC'");
+            bgzf_subfield_valid = true;
         }
+
+        if self.fourth_and_fifth_bytes_set {
+            info!("bytes 4-5 are set");
+        }
+
+        if self.xlen == 6 && self.slen == 2 {
+            info!("xlen and slen bytes are BGZF compatible");
+        }
+
+        if self.xlen == 6
+            && self.slen == 2
+            && bgzf_subfield_valid
+            && self.deflate
+            && self.gzip_magic
+        {
+            info!("BAM file detected");
+        }
+
+
     }
 }
 
