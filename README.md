@@ -169,6 +169,7 @@ Options:
 - [SAM/BAM/CRAM optional fields specification](https://samtools.github.io/hts-specs/SAMtags.pdf)
 - [CRAM 3.x format specification](https://samtools.github.io/hts-specs/CRAMv3.pdf)
 - [CRAM codecs specification](https://samtools.github.io/hts-specs/CRAMcodecs.pdf)
+- [HTSlib BAM file header check](https://raw.githubusercontent.com/samtools/htslib/develop/bgzf.c)
 
 ### Variant formats
 

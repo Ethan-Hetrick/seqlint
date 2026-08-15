@@ -380,8 +380,8 @@ pub fn bytewise_checks(
         }
 
         if fastq_record.phred_64_compatible {
-                info!("quality score compabile with PHRED +64");
-            }
+            info!("quality score compabile with PHRED +64");
+        }
 
         if fastq_record.phred_64_compatible {
             info!("quality score compabile with Solexa +64");
