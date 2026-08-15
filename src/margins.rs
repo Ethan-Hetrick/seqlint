@@ -60,7 +60,7 @@ impl Header {
     }
 
     fn bsize(contents: &Vec<u8>) -> u16 {
-        u16::from_le_bytes([contents[16], contents[17]])
+        u16::from_le_bytes([contents[16], contents[17]]) + 1
     }
 
     fn bgzf_header(gzip_magic: bool, contents: &Vec<u8>) -> Option<&'static str> {

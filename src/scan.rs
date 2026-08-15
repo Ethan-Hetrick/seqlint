@@ -422,10 +422,26 @@ pub fn bytewise_checks(
     }
 }
 
-pub fn decode_reader(bytes: &Vec<u8>) -> io::Result<Vec<u8>> {
-    let mut gz: GzDecoder<&[u8]> = GzDecoder::new(&bytes[..]);
+pub fn decode_reader(bytes: &[u8]) -> io::Result<Vec<u8>> {
+    let mut gz = GzDecoder::new(bytes);
+    let mut decompressed = Vec::new();
+    gz.read_to_end(&mut decompressed)?;
+    Ok(decompressed)
+}
+
+pub fn decode_bgzf(contents: &[u8]) -> io::Result<Vec<u8>> {
     let mut decompressed_contents = Vec::new();
-    let _ = gz.read_to_end(&mut decompressed_contents);
+    let mut i: usize = 0;
+
+    while i < contents.len() {
+        let bsize = u16::from_le_bytes([contents[i + 16], contents[i + 17]]) + 1;
+        let block_len = bsize as usize;
+
+        let block = &contents[i..i + block_len];
+        decompressed_contents.extend_from_slice(&decode_reader(block)?);
+
+        i += block_len;
+    }
 
     Ok(decompressed_contents)
 }

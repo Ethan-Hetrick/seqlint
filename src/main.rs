@@ -84,9 +84,11 @@ fn main() -> io::Result<()> {
         if footer_results.bgzf_eof {
             let new_len = contents.len() - 28;
             contents.truncate(new_len);
+
+            contents = scan::decode_bgzf(&contents).unwrap();
         }
 
-        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic {
+        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic && !footer_results.bgzf_eof {
             scan::decode_reader(&contents).unwrap()
         } else {
             contents.clone()
