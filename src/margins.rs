@@ -4,7 +4,7 @@ const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 const UTF32_LE_BOM: [u8; 4] = [0xFF, 0xFE, 0x00, 0x00];
 const UTF32_BE_BOM: [u8; 4] = [0x00, 0x00, 0xFE, 0xFF];
 
-use seqlint::{pass,info,fail, log, warn};
+use seqlint::{pass,info, log, warn, fail};
 
 #[derive(Debug)]
 pub struct Header {
@@ -16,6 +16,8 @@ pub struct Header {
     fourth_and_fifth_bytes_set: bool,
     xlen: u16,
     slen: u16,
+    bsize: u16,
+    //isize: u32,
 }
 
 impl Header {
@@ -48,8 +50,17 @@ impl Header {
         u16::from_le_bytes([contents[14], contents[15]])
     }
 
+    // TODO: implement isize calculation
+    // fn isize(contents: &Vec<u8>) -> u32 {
+    //     u32::from_le_bytes([contents[23], contents[24], contents[25], contents[26]])
+    // }
+
     fn cram_magic(contents: &Vec<u8>) -> bool {
         contents.starts_with(&[67, 82, 65, 77])
+    }
+
+    fn bsize(contents: &Vec<u8>) -> u16 {
+        u16::from_le_bytes([contents[16], contents[17]])
     }
 
     fn bgzf_header(gzip_magic: bool, contents: &Vec<u8>) -> Option<&'static str> {
@@ -78,6 +89,8 @@ impl Header {
             fourth_and_fifth_bytes_set: Header::fourth_and_fifth_bytes_set(&contents),
             xlen: Header::xlen(&contents),
             slen: Header::slen(&contents),
+            bsize: Header::bsize(&contents),
+            //isize: Header::isize(&contents),
         };
 
         header
@@ -91,6 +104,8 @@ impl Header {
         if self.utf_bom {
             fail!("- contains UTF BOM");
         }
+
+        //let _isize = dbg!(self.isize);
 
         // Print if file is gzipped
         if self.gzip_magic {
@@ -116,6 +131,10 @@ impl Header {
 
         if self.xlen == 6 && self.slen == 2 {
             info!("xlen and slen bytes are BGZF compatible");
+
+            if self.bsize == 0 {
+                warn!("BGZF block size = 0")
+            }
         }
 
         if self.xlen == 6
