@@ -4,7 +4,7 @@ const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 const UTF32_LE_BOM: [u8; 4] = [0xFF, 0xFE, 0x00, 0x00];
 const UTF32_BE_BOM: [u8; 4] = [0x00, 0x00, 0xFE, 0xFF];
 
-use seqlint::{pass,info,fail, log};
+use seqlint::{pass,info,fail, log, warn};
 
 #[derive(Debug)]
 pub struct Header {
@@ -126,6 +126,8 @@ impl Footer {
         }
         if self.newline {
             pass!("last byte is a newline character");
+        } else {
+            warn!("missing final newline character")
         }
     }
 }
