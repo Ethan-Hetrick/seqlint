@@ -82,8 +82,9 @@ Options:
 - [x] File extension is a standard extension
 - [x] First character is `>`
 - [x] Empty record detection
-- [x] NCBI seqID longer than 25 characters
-- [x] NCBI seqID contains only accepted characters
+- [x] seqID longer than 25 characters
+- [x] seqID contains only NCBI accepted characters
+- [x] FASTA header no longer than 80 characters
 - [x] Sequence is IUPAC compatible
 - [x] Duplicate header detection
 - [x] Report record count and parity (even/odd)
