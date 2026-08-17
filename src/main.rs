@@ -56,7 +56,7 @@ fn main() -> io::Result<()> {
 
         // Print report header
         log!("== seqlint v{VERSION} ==");
-        log!("== {path} ==");
+        log!("Linting {path}");
 
         // Run basic file integrity checks
         match integrity::integrity_checks(&path) {
@@ -69,14 +69,26 @@ fn main() -> io::Result<()> {
 
         // Load file
         // TODO: catch errors and print in nicer format
-        let contents: Vec<u8> = fs::read(&path)?;
+        let mut contents: Vec<u8> = fs::read(&path)?;
         let size: usize = contents.len();
 
         // Check headers
         let header_results = Header::new(&contents);
         header_results.report();
 
-        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic {
+        // Footer
+        let footer_results = Footer::new(&contents, &size);
+        footer_results.report();
+
+        // Remove EOF
+        if footer_results.bgzf_eof {
+            let new_len = contents.len() - 28;
+            contents.truncate(new_len);
+
+            contents = scan::decode_bgzf(&contents).unwrap();
+        }
+
+        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic && !footer_results.bgzf_eof {
             scan::decode_reader(&contents).unwrap()
         } else {
             contents.clone()
@@ -86,10 +98,6 @@ fn main() -> io::Result<()> {
             warn!("file contents empty, skipping subsequent checks..\n");
             continue;
         }
-
-        // Footer
-        let footer_results = Footer::new(&contents, &size);
-        footer_results.report();
 
         // Byte-wise checks:
         let (bytewise_results, fastq_results, fasta_results) =

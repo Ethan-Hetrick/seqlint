@@ -53,6 +53,8 @@ Options:
 - [x] Byte Order Marks (BOM) — [UTF8, UTF16_LE, UTF16_BE, UTF32_LE, UTF32_BE](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
 - [x] BGZF End-of-file (EOF) mark
 - [x] BGZF header — 13th/14th byte subfield ID `BC`
+- [x] BGZF header - 4-5 bytes are set
+- [x] BGZF header - xlen = 6, slen = 2
 - [ ] Format versioning
 
 **Byte-wise scanning**
@@ -82,8 +84,9 @@ Options:
 - [x] File extension is a standard extension
 - [x] First character is `>`
 - [x] Empty record detection
-- [x] NCBI seqID longer than 25 characters
-- [x] NCBI seqID contains only accepted characters
+- [x] seqID longer than 25 characters
+- [x] seqID contains only NCBI accepted characters
+- [x] FASTA header no longer than 80 characters
 - [x] Sequence is IUPAC compatible
 - [x] Duplicate header detection
 - [x] Report record count and parity (even/odd)
@@ -166,6 +169,7 @@ Options:
 - [SAM/BAM/CRAM optional fields specification](https://samtools.github.io/hts-specs/SAMtags.pdf)
 - [CRAM 3.x format specification](https://samtools.github.io/hts-specs/CRAMv3.pdf)
 - [CRAM codecs specification](https://samtools.github.io/hts-specs/CRAMcodecs.pdf)
+- [HTSlib BAM file header check](https://raw.githubusercontent.com/samtools/htslib/develop/bgzf.c)
 
 ### Variant formats
 

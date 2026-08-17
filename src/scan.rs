@@ -12,6 +12,7 @@ pub struct ByteWiseCheck {
     pub trailing_whitespace: bool,
     pub empty_line: bool,
     pub line_count: usize,
+    pub final_newline: bool,
 }
 
 impl ByteWiseCheck {
@@ -28,6 +29,9 @@ impl ByteWiseCheck {
         }
         if self.empty_line {
             warn!("contains empty lines");
+        }
+        if !self.final_newline {
+            warn!("missing final newline/return character");
         }
     }
 }
@@ -77,6 +81,7 @@ pub struct FastA {
     pub valid_sequence: bool,
     pub record_count: usize,
     pub max_header_length: usize,
+    pub max_seq_id_length: usize,
     pub valid_seq_id: bool,
     pub duplicate_header: bool,
     pub empty_record: bool,
@@ -135,7 +140,7 @@ pub fn bytewise_checks(
     let mut line_length: usize = 0;
     let mut i: usize = 0;
     let mut trailing_whitespace: bool = false;
-    let mut empty_line: bool = true;
+    let mut empty_line: bool = false;
     let mut is_ascii: bool = true;
     let mut contains_offensive_bytes: bool = false;
     let mut line_count: usize = 0usize;
@@ -157,6 +162,7 @@ pub fn bytewise_checks(
         valid_sequence: true,
         record_count: 0,
         max_header_length: 0,
+        max_seq_id_length: 0,
         valid_seq_id: true,
         duplicate_header: false,
         empty_record: false,
@@ -168,10 +174,18 @@ pub fn bytewise_checks(
     let mut fastq_state = FastqState::Header;
     let mut fasta_state = FastaState::Header;
     let mut line_start: bool = true;
+    let mut seq_id_len: usize = 0;
+    let mut final_newline: bool = true;
 
     for byte in contents.iter() {
         // increase index
         i += 1;
+
+        if i == contents.len() {
+            if *byte != b'\n' {
+                final_newline = false;
+            }
+        }
 
         // check: all bytes are ASCII
         if !byte.is_ascii() {
@@ -322,7 +336,15 @@ pub fn bytewise_checks(
 
                         // toggle off seqID after the first space
                         if *byte == b' ' {
+                            if seq_id_len > fasta_record.max_seq_id_length {
+                                fasta_record.max_seq_id_length = seq_id_len;
+                            }
+
                             in_seq_id = false;
+                        }
+
+                        if in_seq_id {
+                            seq_id_len += 1;
                         }
 
                         // The SeqID can only include letters, digits, hyphens (-),
@@ -342,8 +364,12 @@ pub fn bytewise_checks(
 
                         if !is_iupac_byte(*byte) {
                             if fasta_record.valid_sequence {
-                                fail! {"sequence contains invalid characters. \
-                                Only IUPAC nucleotide symbols are allowed"};
+                                if *byte == b'.' || *byte == b'-' {
+                                    warn!("Found './-' characters. Possible alignment format");
+                                } else {
+                                    fail! {"sequence contains invalid characters. \
+                                    Only IUPAC nucleotide symbols are allowed"};
+                                }
                             }
                             fasta_record.valid_sequence = false;
                         }
@@ -365,8 +391,8 @@ pub fn bytewise_checks(
         }
 
         if fastq_record.phred_64_compatible {
-                info!("quality score compabile with PHRED +64");
-            }
+            info!("quality score compabile with PHRED +64");
+        }
 
         if fastq_record.phred_64_compatible {
             info!("quality score compabile with Solexa +64");
@@ -380,11 +406,15 @@ pub fn bytewise_checks(
             info!("Even number of records");
         }
     } else if format == "fasta" {
-        if fasta_record.max_header_length > 25 {
+        if fasta_record.max_header_length > 80 {
             let header_len = fasta_record.max_header_length.to_string();
-            warn! {"header length exceeds 25 characters.\n\t\
+            warn! {"header length exceeds 80 characters.\n\t\
                 Longest header is {header_len} characters long"
             }
+        }
+
+        if fasta_record.max_seq_id_length > 25 {
+            warn!{"Sequence ID is longer than 25 characters"}
         }
     }
 
@@ -394,6 +424,7 @@ pub fn bytewise_checks(
         trailing_whitespace,
         empty_line,
         line_count,
+        final_newline,
     };
 
     match format {
@@ -403,10 +434,28 @@ pub fn bytewise_checks(
     }
 }
 
-pub fn decode_reader(bytes: &Vec<u8>) -> io::Result<Vec<u8>> {
-    let mut gz: GzDecoder<&[u8]> = GzDecoder::new(&bytes[..]);
+pub fn decode_reader(bytes: &[u8]) -> io::Result<Vec<u8>> {
+    let mut gz = GzDecoder::new(bytes);
+    let mut decompressed = Vec::new();
+    gz.read_to_end(&mut decompressed)?;
+    Ok(decompressed)
+}
+
+pub fn decode_bgzf(contents: &[u8]) -> io::Result<Vec<u8>> {
     let mut decompressed_contents = Vec::new();
-    let _ = gz.read_to_end(&mut decompressed_contents);
+    let mut i: usize = 0;
+
+    while i < contents.len() {
+        let bsize = u16::from_le_bytes([contents[i + 16], contents[i + 17]]) + 1;
+        let block_len = bsize as usize;
+
+        let block = &contents[i..i + block_len];
+        decompressed_contents.extend_from_slice(&decode_reader(block)?);
+
+        i += block_len;
+    }
+
+    println!("{}", String::from_utf8_lossy(&decompressed_contents));
 
     Ok(decompressed_contents)
 }

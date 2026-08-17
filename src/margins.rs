@@ -4,7 +4,7 @@ const UTF16_BE_BOM: [u8; 2] = [0xFE, 0xFF];
 const UTF32_LE_BOM: [u8; 4] = [0xFF, 0xFE, 0x00, 0x00];
 const UTF32_BE_BOM: [u8; 4] = [0x00, 0x00, 0xFE, 0xFF];
 
-use seqlint::{pass,info,fail, log};
+use seqlint::{info, log, warn, fail};
 
 #[derive(Debug)]
 pub struct Header {
@@ -13,6 +13,11 @@ pub struct Header {
     deflate: bool,
     cram_magic: bool,
     bgzf_subfield: Option<&'static str>,
+    fourth_and_fifth_bytes_set: bool,
+    xlen: Option<u16>,
+    slen: Option<u16>,
+    bsize: Option<u16>,
+    //isize: u32,
 }
 
 impl Header {
@@ -25,16 +30,39 @@ impl Header {
     }
 
     pub fn gzip_magic(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[31, 139])
+        contents.get(0) == Some(&31) && contents.get(1) == Some(&139)
     }
 
     fn is_deflate(contents: &Vec<u8>) -> bool {
-        // 3rd byte set to 8 for DEFLATE]
-        contents[2] == 8
+        contents.get(3) == Some(&8)
     }
+
+    fn fourth_and_fifth_bytes_set(contents: &[u8]) -> bool {
+        contents.get(3).is_some_and(|&b| b != 0) && contents.get(4).is_some_and(|&b| b != 0)
+    }
+
+    fn xlen(contents: &Vec<u8>) -> Option<u16> {
+        let bytes: [u8; 2] = contents.get(10..12)?.try_into().ok()?;
+        Some(u16::from_le_bytes(bytes))
+    }
+
+    fn slen(contents: &Vec<u8>) -> Option<u16> {
+        let bytes: [u8; 2] = contents.get(14..16)?.try_into().ok()?;
+        Some(u16::from_le_bytes(bytes))
+    }
+
+    // TODO: implement isize calculation
+    // fn isize(contents: &Vec<u8>) -> u32 {
+    //     u32::from_le_bytes([contents[23], contents[24], contents[25], contents[26]])
+    // }
 
     fn cram_magic(contents: &Vec<u8>) -> bool {
         contents.starts_with(&[67, 82, 65, 77])
+    }
+
+    fn bsize(contents: &Vec<u8>) -> Option<u16> {
+        let bytes: [u8; 2] = contents.get(16..18)?.try_into().ok()?;
+        Some(u16::from_le_bytes(bytes) + 1)
     }
 
     fn bgzf_header(gzip_magic: bool, contents: &Vec<u8>) -> Option<&'static str> {
@@ -60,17 +88,26 @@ impl Header {
             deflate: Header::is_deflate(&contents),
             cram_magic: Header::cram_magic(&contents),
             bgzf_subfield: Header::bgzf_header(gzip_magic, &contents),
+            fourth_and_fifth_bytes_set: Header::fourth_and_fifth_bytes_set(&contents),
+            xlen: Header::xlen(&contents),
+            slen: Header::slen(&contents),
+            bsize: Header::bsize(&contents),
+            //isize: Header::isize(&contents),
         };
 
         header
     }
 
     pub fn report(&self) {
+        let mut bgzf_subfield_valid: bool = false;
+
         log!("== File header checks ==");
         // Error if BOM exists
         if self.utf_bom {
             fail!("- contains UTF BOM");
         }
+
+        //let _isize = dbg!(self.isize);
 
         // Print if file is gzipped
         if self.gzip_magic {
@@ -86,8 +123,32 @@ impl Header {
         }
 
         if let Some(_subfield) = self.bgzf_subfield {
-            info!("contains BGZF subfield 'BC'")
+            info!("contains BGZF subfield 'BC'");
+            bgzf_subfield_valid = true;
         }
+
+        if self.fourth_and_fifth_bytes_set {
+            info!("bytes 4-5 are set");
+        }
+
+        if self.xlen == Some(6) && self.slen == Some(2) {
+            info!("xlen and slen bytes are BGZF compatible");
+
+            if self.bsize == Some(0) {
+                warn!("BGZF block size = 0")
+            }
+        }
+
+        if self.xlen == Some(6)
+            && self.slen == Some(2)
+            && bgzf_subfield_valid
+            && self.deflate
+            && self.gzip_magic
+        {
+            info!("BAM file detected");
+        }
+
+
     }
 }
 
@@ -107,7 +168,7 @@ impl Footer {
     }
 
     fn check_final_newline(contents: &[u8], size: &usize) -> bool {
-        contents[*&size - 1] == 0x0A
+        contents[*&size - 1] == b'\n'
     }
 
     pub fn new(contents: &Vec<u8>, size: &usize) -> Footer {
@@ -124,8 +185,8 @@ impl Footer {
         if self.bgzf_eof {
             info!("contains valid BGZF EOF bytes");
         }
-        if self.newline {
-            pass!("last byte is a newline character");
+        if !self.newline && !self.bgzf_eof {
+            warn!("missing final newline/return character")
         }
     }
 }

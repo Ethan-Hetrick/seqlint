@@ -15,7 +15,7 @@ impl FailureStates {
         match self {
             FailureStates::NotReadable => "does not exist or is not readable",
             FailureStates::IsDirectory => "is a directory",
-            FailureStates::TooSmall => "< 3 bytes",
+            FailureStates::TooSmall => "is empty",
         }
     }
 }
@@ -93,7 +93,7 @@ pub fn integrity_checks(path: &String) -> Result<(), &'static str> {
         return Err(FailureStates::IsDirectory.failure_message())?;
     }
 
-    if metadata.len() < 4 {
+    if metadata.len() == 0 {
         return Err(FailureStates::TooSmall.failure_message());
     }
 

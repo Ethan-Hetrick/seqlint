@@ -2,7 +2,7 @@ const VALID_FASTA_EXTENSIONS: [&str; 8] = [
     ".fasta", ".fa", ".faa", ".fna", ".ffn", ".fas", ".frn", ".mpfa",
 ];
 
-use seqlint::{pass, warn, info};
+use seqlint::{pass, warn, log};
 
 pub struct FastaQuick {
     pub valid_extension: bool,
@@ -20,7 +20,7 @@ impl FastaQuick {
     }
 
     pub fn report(&self) {
-        info!("== FASTA checks (quick) ==");
+        log!("== FASTA checks (quick) ==");
 
         if self.valid_start {
             pass!("starts with '>'")
