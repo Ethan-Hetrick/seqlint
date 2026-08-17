@@ -56,7 +56,7 @@ fn main() -> io::Result<()> {
 
         // Print report header
         log!("== seqlint v{VERSION} ==");
-        log!("== {path} ==");
+        log!("Linting {path}");
 
         // Run basic file integrity checks
         match integrity::integrity_checks(&path) {

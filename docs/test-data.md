@@ -15,6 +15,7 @@ printf '\xFE\xFFfoobar' > test/fixtures/UTF16-BE-BOM.txt
 printf '\xFF\xFE\x00\x00foobar' > test/fixtures/UTF32-LE-BOM.txt
 printf '\x00\x00\xFE\xFFfoobar' > test/fixtures/UTF32-BE-BOM.txt
 
+printf '\x00' > test/fixtures/null.txt
 
 cat > test/test.fasta <<'EOF'
 >foobar_1|foo|BAR1451.1 hypothetical protein, complete cds [organism=Escherichia coli]

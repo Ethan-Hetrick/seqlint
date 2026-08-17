@@ -14,9 +14,9 @@ pub struct Header {
     cram_magic: bool,
     bgzf_subfield: Option<&'static str>,
     fourth_and_fifth_bytes_set: bool,
-    xlen: u16,
-    slen: u16,
-    bsize: u16,
+    xlen: Option<u16>,
+    slen: Option<u16>,
+    bsize: Option<u16>,
     //isize: u32,
 }
 
@@ -30,24 +30,25 @@ impl Header {
     }
 
     pub fn gzip_magic(contents: &Vec<u8>) -> bool {
-        contents.starts_with(&[31, 139])
+        contents.get(0) == Some(&31) && contents.get(1) == Some(&139)
     }
 
     fn is_deflate(contents: &Vec<u8>) -> bool {
-        // 3rd byte set to 8 for DEFLATE]
-        contents[2] == 8
+        contents.get(3) == Some(&8)
     }
 
-    fn fourth_and_fifth_bytes_set(contents: &Vec<u8>) -> bool {
-        contents[3] == 0 || contents[4] == 0
+    fn fourth_and_fifth_bytes_set(contents: &[u8]) -> bool {
+        contents.get(3).is_some_and(|&b| b != 0) && contents.get(4).is_some_and(|&b| b != 0)
     }
 
-    fn xlen(contents: &Vec<u8>) -> u16 {
-        u16::from_le_bytes([contents[10], contents[11]])
+    fn xlen(contents: &Vec<u8>) -> Option<u16> {
+        let bytes: [u8; 2] = contents.get(10..12)?.try_into().ok()?;
+        Some(u16::from_le_bytes(bytes))
     }
 
-    fn slen(contents: &Vec<u8>) -> u16 {
-        u16::from_le_bytes([contents[14], contents[15]])
+    fn slen(contents: &Vec<u8>) -> Option<u16> {
+        let bytes: [u8; 2] = contents.get(14..16)?.try_into().ok()?;
+        Some(u16::from_le_bytes(bytes))
     }
 
     // TODO: implement isize calculation
@@ -59,8 +60,9 @@ impl Header {
         contents.starts_with(&[67, 82, 65, 77])
     }
 
-    fn bsize(contents: &Vec<u8>) -> u16 {
-        u16::from_le_bytes([contents[16], contents[17]]) + 1
+    fn bsize(contents: &Vec<u8>) -> Option<u16> {
+        let bytes: [u8; 2] = contents.get(16..18)?.try_into().ok()?;
+        Some(u16::from_le_bytes(bytes) + 1)
     }
 
     fn bgzf_header(gzip_magic: bool, contents: &Vec<u8>) -> Option<&'static str> {
@@ -129,16 +131,16 @@ impl Header {
             info!("bytes 4-5 are set");
         }
 
-        if self.xlen == 6 && self.slen == 2 {
+        if self.xlen == Some(6) && self.slen == Some(2) {
             info!("xlen and slen bytes are BGZF compatible");
 
-            if self.bsize == 0 {
+            if self.bsize == Some(0) {
                 warn!("BGZF block size = 0")
             }
         }
 
-        if self.xlen == 6
-            && self.slen == 2
+        if self.xlen == Some(6)
+            && self.slen == Some(2)
             && bgzf_subfield_valid
             && self.deflate
             && self.gzip_magic
