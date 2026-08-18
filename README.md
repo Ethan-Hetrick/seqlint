@@ -62,7 +62,7 @@ Options:
 - [x] ASCII compatibility
 - [x] Offending ASCII bytes (control characters, NUL, CR, ...)
 
-### Specific file type checks
+### File Type Specific Checks
 
 **FASTQ**
 
@@ -78,6 +78,7 @@ Options:
 - [ ] Sequence ID
 - [x] "+" line non-empty
 - [ ] Optional seqname after `+` must match the seqname following `@`
+- [x] ORA (Original Read Archive) magic bytes. Does not support type specific checks
 
 **FASTA**
 
@@ -154,6 +155,10 @@ Options:
 - [NCBI FASTA format requirements](https://www.ncbi.nlm.nih.gov/genbank/fastaformat/)
 - [NCBI SRA FASTQ format requirements](https://www.ncbi.nlm.nih.gov/sra/docs/submitformats/#fastq-files)
 
+### Proprietary formats
+
+- [DRAGEN ORA](https://support-docs.illumina.com/SW/ORA_Format_Specification/Content/SW/ORA/ORAFormatSpecification.htm)
+
 ### Compression and container formats
 
 - [RFC 1951 — DEFLATE Compressed Data Format Specification](https://www.rfc-editor.org/rfc/rfc1951)
@@ -214,3 +219,4 @@ Options:
 
 - [Unicode Standard — Byte Order Mark](https://www.unicode.org/versions/latest/)
 - [Microsoft: Using Byte Order Marks](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
+  

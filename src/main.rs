@@ -99,6 +99,11 @@ fn main() -> io::Result<()> {
             continue;
         }
 
+        if header_results.ora_magic {
+                    fail! {"ORA (Original Read Archive) format not supported. Skipping subsequent checks.."};
+                    continue
+                }
+
         // Byte-wise checks:
         let (bytewise_results, fastq_results, fasta_results) =
             scan::bytewise_checks(&bytewise_checks_input, &format_selection.unwrap_or(""));

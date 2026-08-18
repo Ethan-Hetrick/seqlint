@@ -17,6 +17,7 @@ pub struct Header {
     xlen: Option<u16>,
     slen: Option<u16>,
     bsize: Option<u16>,
+    pub ora_magic: bool,
     //isize: u32,
 }
 
@@ -78,6 +79,10 @@ impl Header {
         }
     }
 
+    fn is_ora(contents: &Vec<u8>) -> bool {
+        contents[0] == 0x49 && contents[1] == 0x7c
+    }
+
     pub fn new(contents: &Vec<u8>) -> Header {
         // check: headers
         let gzip_magic = Header::gzip_magic(&contents);
@@ -92,6 +97,7 @@ impl Header {
             xlen: Header::xlen(&contents),
             slen: Header::slen(&contents),
             bsize: Header::bsize(&contents),
+            ora_magic: Header::is_ora(&contents),
             //isize: Header::isize(&contents),
         };
 

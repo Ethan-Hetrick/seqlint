@@ -5,6 +5,7 @@ use seqlint::{fail, info, warn, log};
 #[derive(Debug)]
 pub struct FastqQuick {
     pub valid_extension: bool,
+    pub ora_extension: bool,
     pub valid_start: bool,
     pub four_line_entries: bool,
     pub paired_end_r1: bool,
@@ -19,6 +20,7 @@ impl FastqQuick {
             valid_extension: VALID_FASTQ_EXTENSIONS
                 .iter()
                 .any(|&ext| path_no_gz.ends_with(ext)),
+            ora_extension: path_no_gz.ends_with("ora"),
             valid_start: contents.starts_with(&[b'@']),
             four_line_entries: (line_count % 4 == 0),
             paired_end_r1: path_no_gz.contains("_R1_")
@@ -32,8 +34,10 @@ impl FastqQuick {
 
     pub fn report(&self) {
         log!("== FASTQ checks (quick) ==");
-        if !self.valid_extension {
+        if !self.valid_extension && !self.ora_extension {
             warn!("does not have recognized extension")
+        } else if !self.valid_extension && self.ora_extension {
+            warn!("DRAGEN ORA (Original Read Archive) file extension"); // Technically dead code, but works. keeping for now
         }
 
         if !self.valid_start {
