@@ -7,6 +7,7 @@ use std::path::PathBuf;
 
 mod fasta;
 mod fastq;
+mod bam;
 mod integrity;
 mod margins;
 mod scan;
@@ -39,6 +40,7 @@ struct Args {
 enum Pipeline {
     Fasta,
     Fastq,
+    Bam,
 }
 
 fn main() -> io::Result<()> {
@@ -48,6 +50,7 @@ fn main() -> io::Result<()> {
     let format_selection: Option<&str> = args.format.as_ref().map(|p| match p {
         Pipeline::Fasta => "fasta",
         Pipeline::Fastq => "fastq",
+        Pipeline::Bam => "bam",
     });
 
     let file_set = integrity::generate_canonical_path_set(args.files, args.recursive, args.max_depth, args.follow);
@@ -126,6 +129,11 @@ fn main() -> io::Result<()> {
                 if let Some(fq) = fastq_results {
                     fq.report();
                 }
+            }
+            Some(Pipeline::Bam) => {
+                let bam_quick = bam::Bam::new(&contents);
+
+                bam_quick.report();
             }
             None => {}
         }
