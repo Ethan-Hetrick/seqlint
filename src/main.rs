@@ -88,13 +88,13 @@ fn main() -> io::Result<()> {
             contents = scan::decode_bgzf(&contents).unwrap();
         }
 
-        let bytewise_checks_input: Vec<u8> = if header_results.gzip_magic && !footer_results.bgzf_eof {
+        let contents: Vec<u8> = if header_results.gzip_magic && !footer_results.bgzf_eof {
             scan::decode_reader(&contents).unwrap()
         } else {
             contents.clone()
         };
 
-        if bytewise_checks_input.is_empty() {
+        if contents.is_empty() {
             warn!("file contents empty, skipping subsequent checks..\n");
             continue;
         }
@@ -106,7 +106,7 @@ fn main() -> io::Result<()> {
 
         // Byte-wise checks:
         let (bytewise_results, fastq_results, fasta_results) =
-            scan::bytewise_checks(&bytewise_checks_input, &format_selection.unwrap_or(""));
+            scan::bytewise_checks(&contents, &format_selection.unwrap_or(""));
         bytewise_results.report();
 
         match args.format {
