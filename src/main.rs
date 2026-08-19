@@ -105,7 +105,14 @@ fn main() -> io::Result<()> {
         if header_results.ora_magic {
                     fail! {"ORA (Original Read Archive) format not supported. Skipping subsequent checks.."};
                     continue
-                }
+        }
+
+        if matches!(&args.format, Some(Pipeline::Bam)) {
+            let bam_quick = bam::Bam::new(&contents);
+
+            bam_quick.report();
+            continue
+        }
 
         // Byte-wise checks:
         let (bytewise_results, fastq_results, fasta_results) =
@@ -130,11 +137,7 @@ fn main() -> io::Result<()> {
                     fq.report();
                 }
             }
-            Some(Pipeline::Bam) => {
-                let bam_quick = bam::Bam::new(&contents);
-
-                bam_quick.report();
-            }
+            Some(Pipeline::Bam) => {}
             None => {}
         }
     }
