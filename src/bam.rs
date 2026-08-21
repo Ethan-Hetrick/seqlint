@@ -1,6 +1,6 @@
 const BAM_MAGIC: &[u8; 4] = b"BAM\x01";
 
-use seqlint::{info,log};
+use seqlint::{info,log,warn};
 
 // BAM specific file checks
 pub struct Bam {
@@ -53,7 +53,7 @@ impl Bam {
 
         match &self.bam_header {
             Some(header) => info!("BAM header: {header}"),
-            _ => info!("No BAM header returned")
+            _ => warn!("No BAM header returned")
         }
     }
 }
