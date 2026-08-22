@@ -219,4 +219,8 @@ Options:
 
 - [Unicode Standard — Byte Order Mark](https://www.unicode.org/versions/latest/)
 - [Microsoft: Using Byte Order Marks](https://learn.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks)
-  
+
+### Common formatting mistaks
+
+- [Biostars common mistakes forum](https://www.biostars.org/p/7126/?__cf_chl_tk=Kdp8hrdF0yQXX5RD1bnGOz7wwOG9DUZD_XM6ZQgcV9A-1787372993-1.0.1.1-3T_5FBhxmhSs6IJMvDC7Ln0ctT_btQW80UsUgBPisgM)
+- [Gene name errors from Excel](https://link.springer.com/article/10.1186/1471-2105-5-80)
